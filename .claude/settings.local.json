@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"d:\\\\Projects_Other\\\\GraduationProject\")",
+      "Bash(cat \"d:\\\\ProjectVeteren\\\\package.json\" 2>/dev/null || echo \"NOT FOUND\")",
+      "Read(//d/ProjectVeteren/**)",
+      "Bash(dir \"d:\\\\ProjectVeteren\" /b)",
+      "Read(//d//**)",
+      "Bash(npx --yes playwright --version)"
+    ]
+  }
+}
