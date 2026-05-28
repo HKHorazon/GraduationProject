@@ -1,10 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import TableActionMenu from '@/components/TableActionMenu.vue'
+import { useAuthStore } from '@/stores/auth'
 import { students } from '@/data/students'
 import { groups } from '@/data/groups'
 import { teachers } from '@/data/teachers'
+
+const auth = useAuthStore()
+const router = useRouter()
 
 // ROC year helper
 function toRoc(schoolYear) {
@@ -96,6 +102,18 @@ const cols = [
   { key: 'category',    label: '專題類別' },
   { key: 'project',     label: '專題名稱' },
 ]
+
+function studentActions(s) {
+  return [
+    {
+      label: '退出專題組',
+      icon: UserMinus,
+      danger: true,
+      disabled: !s.group_id,
+      handler: () => router.push('/changes/remove-student'),
+    },
+  ]
+}
 </script>
 
 <template>
@@ -153,6 +171,9 @@ const cols = [
                     <ChevronsUpDown v-else class="w-3 h-3 opacity-30" />
                   </div>
                 </th>
+                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                  管理
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-[#2a3347]">
@@ -187,9 +208,12 @@ const cols = [
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getTeacherNames(s.group_id) }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getGroup(s.group_id)?.category ?? '—' }}</td>
                 <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">{{ getGroup(s.group_id)?.name ?? '—' }}</td>
+                <td v-if="auth.isEditor" class="px-4 py-3">
+                  <TableActionMenu :actions="studentActions(s)" />
+                </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td colspan="7" class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+                <td :colspan="auth.isEditor ? 8 : 7" class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
                   找不到符合條件的學生
                 </td>
               </tr>

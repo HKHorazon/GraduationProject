@@ -53,7 +53,7 @@ function toggleCollapse() {
         <SidebarItem to="/data" label="資料管理" :icon="FolderOpen" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="auth.isEditor" label="帳號" :icon="User" :collapsed="collapsed">
+      <SidebarGroup v-if="auth.isSuperAdmin" label="帳號" :icon="User" :collapsed="collapsed">
         <SidebarItem to="/accounts" label="帳號管理" :icon="Settings" :collapsed="collapsed" />
       </SidebarGroup>
     </nav>
