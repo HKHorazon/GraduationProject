@@ -9,23 +9,30 @@ Start the Vite dev server for this project and show the local URL.
 
 ## Steps
 
-1. Check if a dev server is already running on port 5173 or 5174
-2. If not running, start it with `npm run dev` in the background
-3. Wait for it to be ready
-4. Display the local URL to the user
+1. Check port 5173 (Vite default), then 5174–5179 in order to find a running dev server
+2. If none found, start the dev server in background with `npm run dev`
+3. Wait ~3 seconds, then scan ports 5173–5179 again to find the active port
+4. Display the URL to the user
 
-## Instructions
+## Port Check Command
 
-Run this Bash command to check if dev server is already up:
-```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/ 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/ 2>/dev/null
+Run for each port (5173 first, then 5174–5179):
+```powershell
+try { $r = Invoke-WebRequest -Uri "http://localhost:PORT/" -TimeoutSec 1 -ErrorAction Stop; $r.StatusCode } catch { 0 }
 ```
+Stop at the first port that returns `200`.
 
-If the server is not running (not 200), start it:
-```bash
-cd "d:\Projects_Other\GraduationProject" && npm run dev 2>&1
+## Start Command (if no port active)
+
+```powershell
+cd "d:\Projects_Other\GraduationProject"; npm run dev
 ```
-Run in background, wait ~3 seconds, then read the output to find the port.
+Run in background, then re-scan ports after 3 seconds.
 
-Tell the user:
-> Dev server is running at **http://localhost:<PORT>/**
+## Final Message
+
+> Dev server is running at **http://localhost:PORT/**
+>
+> Routes:
+> - `/` → 學生列表（純瀏覽，無需登入）
+> - `/#/login` → 編輯者登入頁

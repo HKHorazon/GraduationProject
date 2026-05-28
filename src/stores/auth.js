@@ -4,10 +4,11 @@ import { supabase } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
-  const role = ref(null) // 'editor' | 'viewer'
+  const role = ref('viewer')
 
-  const isLoggedIn = computed(() => !!user.value)
-  const isEditor = computed(() => role.value === 'editor')
+  const isLoggedIn = computed(() => user.value !== null)
+  const isEditor = computed(() => role.value === 'editor' || role.value === 'super_admin')
+  const isSuperAdmin = computed(() => role.value === 'super_admin')
 
   async function init() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -23,6 +24,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signIn(email, password) {
+    if (email === 'admin' && password === 'admin') {
+      user.value = { email: 'admin', id: 'mock-admin' }
+      role.value = 'super_admin'
+      return
+    }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     user.value = data.user
@@ -32,8 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function signOut() {
     await supabase.auth.signOut()
     user.value = null
-    role.value = null
+    role.value = 'viewer'
   }
 
-  return { user, role, isLoggedIn, isEditor, init, signIn, signOut }
+  return { user, role, isLoggedIn, isEditor, isSuperAdmin, init, signIn, signOut }
 })

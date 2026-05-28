@@ -12,5 +12,8 @@ app.use(pinia)
 app.use(router)
 
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+
 const auth = useAuthStore()
+useThemeStore() // initialise dark mode before mount
 auth.init().then(() => app.mount('#app'))
