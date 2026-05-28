@@ -1,11 +1,11 @@
 ---
 name: ship
-description: Build the project, commit, and push to GitHub. Displays the GitHub Pages URL when done. Use when the user types /ship.
+description: Build the project, commit, push source to GitHub, and deploy to GitHub Pages. Use when the user types /ship.
 ---
 
-# Ship — Build & Deploy to GitHub
+# Ship — Build & Deploy to GitHub Pages
 
-Build the Vue app, commit all changes, push to GitHub, and show the live GitHub Pages URL.
+Build the Vue app, commit source changes, push to GitHub, then deploy built files to GitHub Pages.
 
 ## GitHub Info
 - Remote: https://github.com/HKHorazon/GraduationProject.git
@@ -13,33 +13,29 @@ Build the Vue app, commit all changes, push to GitHub, and show the live GitHub 
 
 ## Steps
 
-1. Run `npm run build` in `d:\Projects_Other\GraduationProject`
-2. If build fails, report the error and stop
-3. Ask the user for a commit message (or default to "update" if they don't provide one)
-4. Stage all changes and commit
-5. Push to GitHub (`git push`)
+1. Ask the user for a commit message (or use "update" as default)
+2. Stage all source changes and commit
+3. Push source to GitHub (`git push`)
+4. Run `npm run deploy` to build and push `dist/` to the `gh-pages` branch
+5. If any step fails, report the error and stop
 6. Tell the user the live URL
 
 ## Commands
 
-```powershell
+```bash
 cd "d:\Projects_Other\GraduationProject"
-npm run build
 git add -A
 git commit -m "<message>"
 git push
+npm run deploy
 ```
 
 ## Final message to user
 
 > Deployed! Live at: **https://hkhorazon.github.io/GraduationProject/**
 > (GitHub Pages may take ~1 minute to update)
->
-> Routes:
-> - `/#/` → 學生列表（純瀏覽，無需登入）
-> - `/#/login` → 編輯者登入頁
 
 ## Notes
 - Do NOT force push
-- If there's nothing to commit, skip the commit step and just push
-- Ensure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set in `.env.local` before building
+- If there's nothing to commit, skip the commit step and just run `npm run deploy`
+- `npm run deploy` = `npm run build && gh-pages -d dist` (deploys to gh-pages branch)
