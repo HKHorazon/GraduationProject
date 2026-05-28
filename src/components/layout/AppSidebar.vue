@@ -1,14 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import SidebarGroup from './SidebarGroup.vue'
 import SidebarItem from './SidebarItem.vue'
 import {
   Search, Users, LayoutList, RefreshCw,
-  UserMinus, Database, FolderOpen, User, Settings, GraduationCap, ChevronLeft, ChevronRight
+  UserMinus, Database, FolderOpen, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const collapsed = ref(false)
 
 onMounted(() => {
@@ -41,20 +43,21 @@ function toggleCollapse() {
     <!-- Nav -->
     <nav class="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-1">
       <SidebarGroup label="瀏覽" :icon="Search" :collapsed="collapsed">
-        <SidebarItem to="/students" label="學生列表" :icon="Users" :collapsed="collapsed" />
-        <SidebarItem to="/groups" label="組別列表" :icon="LayoutList" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canAccess('students', auth.role)" to="/students" label="學生列表" :icon="Users" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canAccess('groups', auth.role)" to="/groups" label="組別列表" :icon="LayoutList" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="auth.isEditor" label="異動" :icon="RefreshCw" :collapsed="collapsed">
+      <SidebarGroup v-if="perms.canAccess('remove-student', auth.role)" label="異動" :icon="RefreshCw" :collapsed="collapsed">
         <SidebarItem to="/changes/remove-student" label="移除學生出組" :icon="UserMinus" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="auth.isEditor" label="資料" :icon="Database" :collapsed="collapsed">
+      <SidebarGroup v-if="perms.canAccess('data', auth.role)" label="資料" :icon="Database" :collapsed="collapsed">
         <SidebarItem to="/data" label="資料管理" :icon="FolderOpen" :collapsed="collapsed" />
       </SidebarGroup>
 
       <SidebarGroup v-if="auth.isSuperAdmin" label="帳號" :icon="User" :collapsed="collapsed">
         <SidebarItem to="/accounts" label="帳號管理" :icon="Settings" :collapsed="collapsed" />
+        <SidebarItem to="/permissions" label="權限設定" :icon="ShieldCheck" :collapsed="collapsed" />
       </SidebarGroup>
     </nav>
 

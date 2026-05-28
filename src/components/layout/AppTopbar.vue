@@ -15,6 +15,7 @@ const pageTitles = {
   '/changes/remove-student': '移除學生出組',
   '/data': '資料管理',
   '/accounts': '帳號管理',
+  '/permissions': '權限設定',
 }
 
 const pageTitle = computed(() => pageTitles[route.path] ?? '畢業專題管理系統')

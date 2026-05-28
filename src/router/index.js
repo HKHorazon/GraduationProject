@@ -7,6 +7,7 @@ const routes = [
   { path: '/changes/remove-student', name: 'RemoveStudent', component: () => import('@/views/changes/RemoveStudentView.vue') },
   { path: '/data', name: 'Data', component: () => import('@/views/DataView.vue') },
   { path: '/accounts', name: 'Accounts', component: () => import('@/views/AccountsView.vue') },
+  { path: '/permissions', name: 'Permissions', component: () => import('@/views/PermissionsView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/students' },
 ]
 
