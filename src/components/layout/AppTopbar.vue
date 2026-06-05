@@ -12,7 +12,7 @@ const route = useRoute()
 const pageTitles = {
   '/students': '學生列表',
   '/groups': '組別列表',
-  '/changes/remove-student': '移除學生出組',
+  '/changes/remove-student': '學生更動',
   '/data': '資料管理',
   '/accounts': '帳號管理',
   '/permissions': '權限設定',

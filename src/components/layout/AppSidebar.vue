@@ -48,7 +48,7 @@ function toggleCollapse() {
       </SidebarGroup>
 
       <SidebarGroup v-if="perms.canAccess('remove-student', auth.role)" label="異動" :icon="RefreshCw" :collapsed="collapsed">
-        <SidebarItem to="/changes/remove-student" label="移除學生出組" :icon="UserMinus" :collapsed="collapsed" />
+        <SidebarItem to="/changes/remove-student" label="學生更動" :icon="UserMinus" :collapsed="collapsed" />
       </SidebarGroup>
 
       <SidebarGroup v-if="perms.canAccess('data', auth.role)" label="資料" :icon="Database" :collapsed="collapsed">

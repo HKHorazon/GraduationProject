@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 export const PAGES = [
   { key: 'students',        label: '學生列表',    route: '/students' },
   { key: 'groups',          label: '組別列表',    route: '/groups' },
-  { key: 'remove-student',  label: '移除學生出組', route: '/changes/remove-student' },
+  { key: 'remove-student',  label: '學生更動',    route: '/changes/remove-student' },
   { key: 'data',            label: '資料管理',    route: '/data' },
 ]
 

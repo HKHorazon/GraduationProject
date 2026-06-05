@@ -8,8 +8,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Noto Sans TC"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+        sans: ['"DM Sans"', '"Noto Sans TC"', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Noto Sans TC"', 'sans-serif'],
+        mono: ['"Fira Code"', '"JetBrains Mono"', 'monospace'],
       },
       colors: {
         accent: {
