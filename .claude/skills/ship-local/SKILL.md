@@ -1,38 +1,79 @@
 ---
 name: ship-local
-description: Start the local dev server and display the local URL. Use when the user types /ship-local.
+description: Start the full local stack (FastAPI backend + Vite frontend) and display the URLs. Use when the user types /ship-local.
 ---
 
 # Ship Local
 
-Always start a **new** Vite dev server and show the URL. Do NOT reuse an existing one.
+Start the **whole app locally**: FastAPI backend (port 8000, SQLite stand-in DB)
+and the Vite frontend (5173). This machine has no Docker/Postgres, so the backend
+runs against a local SQLite file — behavior is identical to the Docker/Postgres
+production setup.
+
+Project root: `d:\Projects_Others\GraduationProject`
+Frontend lives in `frontend/`, backend in `backend/`.
+Backend venv python: `backend\.venv\Scripts\python.exe`
+Local DB file: `backend\local_dev.db`
 
 ## Steps
 
-1. Run `npm run dev` in background (Vite will auto-pick the next free port if one is already in use)
-2. Wait 4 seconds for the server to boot
-3. Scan ports 5173–5182 in order, stop at the first that returns HTTP 200
-4. Display the URL to the user
+### 1. First-time setup (skip if already done)
+- If `backend\.venv` is missing, create it and install deps:
+  ```powershell
+  cd "d:\Projects_Others\GraduationProject\backend"
+  python -m venv .venv
+  .\.venv\Scripts\python.exe -m pip install -q -r requirements.txt
+  
+  ```
+  (Note: `requirements.txt` lists `psycopg`/`alembic` for Postgres. The SQLite dev
+  run does not need them — if a wheel fails to build on this machine, install just
+  the subset: `fastapi "uvicorn[standard]" sqlalchemy pydantic-settings "python-jose[cryptography]" bcrypt python-multipart`.)
+- If `backend\local_dev.db` is missing, create tables + seed:
+  ```powershell
+  cd "d:\Projects_Others\GraduationProject\backend"
+  $env:DATABASE_URL="sqlite:///./local_dev.db"; .\.venv\Scripts\python.exe dev_local.py
+  ```
+  To also load richer fake data: `.\.venv\Scripts\python.exe seed_fake.py`
 
-## Start Command
+### 2. Start the BACKEND (always restart so latest code runs)
+- Free port 8000 first (kill any prior uvicorn, including orphaned reload workers):
+  ```powershell
+  Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+    Where-Object { $_.CommandLine -like '*uvicorn*' } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  ```
+  If `Get-NetTCPConnection -LocalPort 8000` still shows a Listen owned by a dead
+  PID, find the live owner via `Get-CimInstance Win32_Process -Filter "Name='python.exe'"`
+  (look at ParentProcessId) and kill it.
+- Start it in the **background** (no `--reload` — WatchFiles hangs on Windows here):
+  ```bash
+  cd "d:/Projects_Others/GraduationProject/backend" && \
+  DATABASE_URL="sqlite:///./local_dev.db" JWT_SECRET="dev-secret" CORS_ORIGINS="http://localhost:5173" \
+  ./.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+  ```
+- Confirm: `Invoke-RestMethod http://127.0.0.1:8000/health` returns `{status: ok}`.
 
-```bash
-cd "d:\Projects_Other\GraduationProject" && npm run dev 2>&1
-```
+### 3. Start the FRONTEND
+- Start a **new** Vite dev server in the background (from `frontend/`):
+  ```bash
+  cd "d:/Projects_Others/GraduationProject/frontend" && npm run dev
+  ```
+- Wait ~4s, then scan ports 5173–5182 and pick the **highest** one returning HTTP 200
+  (that's the newest server). Vite proxies `/api` → `http://localhost:8000`.
 
-Run in background.
-
-## Port Check Command (run after waiting)
-
-```bash
-for port in 5173 5174 5175 5176 5177 5178 5179 5180 5181 5182; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/ 2>/dev/null)
-  if [ "$code" = "200" ]; then echo "FOUND:$port"; break; fi
-done
-```
-
-Pick the **highest** port found — that's the newest server.
+### 4. Report
+Show both URLs and the test logins.
 
 ## Final Message
 
-> Dev server running at **http://localhost:PORT/**
+> Local stack running:
+> - **Frontend (open this): http://localhost:PORT/**
+> - Backend API docs: http://localhost:8000/docs
+>
+> Logins (password `password`): `admin` (super_admin) · `chen` (editor) · `wang` (viewer).
+> Browsing works without logging in.
+
+## Notes
+- Backend has no `--reload`: after changing **backend** code, re-run step 2 to restart it.
+- Frontend changes hot-reload automatically (no restart needed).
+- To reset data: delete `backend\local_dev.db`, then redo step 1's DB seed.

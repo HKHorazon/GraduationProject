@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-graduation}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # bound to localhost only — reachable from the host (pg_dump/debug), never from the internet
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@db:5432/${POSTGRES_DB:-graduation}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-prod}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # localhost only — the frontend reaches the backend over the internal docker
+      # network (proxy_pass http://backend:8000). This is just for host-side debugging.
+      - "127.0.0.1:8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # the only public entry point. Add more systems on other ports (8081, 8082, ...).
+      - "8080:80"
+
+volumes:
+  pgdata:
