@@ -6,7 +6,7 @@ import SidebarGroup from './SidebarGroup.vue'
 import SidebarItem from './SidebarItem.vue'
 import {
   Search, Users, LayoutList, RefreshCw,
-  UserMinus, FolderCog, FileText, FileStack, Database, FolderOpen, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
+  UserMinus, FolderCog, FileText, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -59,8 +59,9 @@ function toggleCollapse() {
         <SidebarItem to="/documents" label="文件處理" :icon="FileText" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="perms.canAccess('data', auth.role)" label="資料" :icon="Database" :collapsed="collapsed">
-        <SidebarItem to="/data" label="資料管理" :icon="FolderOpen" :collapsed="collapsed" />
+      <SidebarGroup v-if="perms.canAccess('data', auth.role) || perms.canAccess('audit-logs', auth.role)" label="資料" :icon="Database" :collapsed="collapsed">
+        <SidebarItem v-if="perms.canAccess('data', auth.role)" to="/data" label="資料管理" :icon="FolderOpen" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canAccess('audit-logs', auth.role)" to="/audit-logs" label="異動紀錄" :icon="History" :collapsed="collapsed" />
       </SidebarGroup>
 
       <SidebarGroup v-if="auth.isSuperAdmin" label="帳號" :icon="User" :collapsed="collapsed">
