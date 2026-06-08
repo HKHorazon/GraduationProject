@@ -49,13 +49,13 @@ function toggleCollapse() {
 
       <SidebarGroup
         v-if="perms.canAccess('remove-student', auth.role) || perms.canAccess('group-change', auth.role)"
-        label="異動" :icon="RefreshCw" :collapsed="collapsed"
+        label="基本操作" :icon="RefreshCw" :collapsed="collapsed"
       >
         <SidebarItem v-if="perms.canAccess('remove-student', auth.role)" to="/changes/remove-student" label="學生更動" :icon="UserMinus" :collapsed="collapsed" />
         <SidebarItem v-if="perms.canAccess('group-change', auth.role)" to="/changes/group-change" label="組別異動" :icon="FolderCog" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="perms.canAccess('documents', auth.role)" label="文件處理" :icon="FileStack" :collapsed="collapsed">
+      <SidebarGroup v-if="perms.canAccess('documents', auth.role)" label="文件" :icon="FileStack" :collapsed="collapsed">
         <SidebarItem to="/documents" label="文件處理" :icon="FileText" :collapsed="collapsed" />
       </SidebarGroup>
 
