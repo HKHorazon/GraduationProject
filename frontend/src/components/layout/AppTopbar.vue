@@ -14,11 +14,13 @@ const pageTitles = {
   '/groups': '組別列表',
   '/changes/remove-student': '學生更動',
   '/data': '資料管理',
+  '/audit-logs': '異動紀錄',
   '/accounts': '帳號管理',
   '/permissions': '權限設定',
+  '/about': '關於此系統',
 }
 
-const pageTitle = computed(() => pageTitles[route.path] ?? '畢業專題管理系統')
+const pageTitle = computed(() => pageTitles[route.path] ?? '弘光多遊系畢業專題')
 
 // Login panel state
 const loginOpen = ref(false)

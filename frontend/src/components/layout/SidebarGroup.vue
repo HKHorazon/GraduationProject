@@ -1,14 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 
-defineProps({
+const props = defineProps({
   label: { type: String, required: true },
   icon: { type: [Object, Function], required: true },
   collapsed: { type: Boolean, default: false },
 })
 
-const open = ref(true)
+// The sidebar remounts on every route change (each view renders its own
+// AppLayout), so persist each group's open state keyed by label.
+const storageKey = `sidebar-group:${props.label}`
+const open = ref(localStorage.getItem(storageKey) !== 'false')
+watch(open, (v) => localStorage.setItem(storageKey, v))
 function toggle() { open.value = !open.value }
 </script>
 

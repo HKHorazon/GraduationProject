@@ -8,6 +8,7 @@ export const PAGES = [
   { key: 'group-change',    label: '組別異動',    route: '/changes/group-change' },
   { key: 'documents',       label: '文件處理',    route: '/documents' },
   { key: 'data',            label: '資料管理',    route: '/data' },
+  { key: 'audit-logs',      label: '異動紀錄',    route: '/audit-logs' },
 ]
 
 // super_admin always has full access — not editable
@@ -20,6 +21,7 @@ const DEFAULT_PERMISSIONS = {
   'group-change': { viewer: false, editor: true  },
   documents:      { viewer: false, editor: true  },
   data:           { viewer: false, editor: true  },
+  'audit-logs':   { viewer: false, editor: true  },
 }
 
 function loadFromStorage() {

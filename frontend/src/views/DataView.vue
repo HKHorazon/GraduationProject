@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import * as XLSX from 'xlsx'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
-import { api } from '@/lib/api'
+import { rocYear } from '@/lib/year'
 import {
-  UserPlus, Upload, GraduationCap, History, ShieldOff, Check, FileSpreadsheet, X, RefreshCw,
+  UserPlus, Upload, GraduationCap, ShieldOff, Check, FileSpreadsheet, X,
+  LayoutDashboard, FolderPlus, Users, LayoutList, Download,
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -22,18 +23,82 @@ const classes = computed(() =>
 )
 
 const TABS = [
+  { key: 'overview', label: '總覽', icon: LayoutDashboard },
   { key: 'student', label: '新增學生', icon: UserPlus },
+  { key: 'group', label: '新增組別', icon: FolderPlus },
   { key: 'bulk', label: '批次匯入', icon: Upload },
   { key: 'teacher', label: '新增老師', icon: GraduationCap },
-  { key: 'audit', label: '異動紀錄', icon: History },
 ]
-const tab = ref('student')
+const tab = ref('overview')
 
 function flash(msgRef) {
   return (text) => {
     msgRef.value = text
     setTimeout(() => { if (msgRef.value === text) msgRef.value = '' }, 2500)
   }
+}
+
+function toRoc(y) {
+  return `${rocYear(y)} 學年`
+}
+
+// ───────── 總覽 (overview) ─────────
+const stats = computed(() => {
+  const s = data.students
+  const active = s.filter((x) => x.status !== 'inactive').length
+  const grouped = s.filter((x) => x.group_id).length
+  return {
+    students: s.length,
+    active,
+    inactive: s.length - active,
+    grouped,
+    ungrouped: s.length - grouped,
+    groups: data.groups.length,
+    teachers: data.teachers.length,
+    years: years.value.length,
+  }
+})
+
+const byYear = computed(() =>
+  years.value.map((y) => ({
+    year: y,
+    students: data.students.filter((s) => s.school_year === y).length,
+    groups: data.groups.filter((g) => g.school_year === y).length,
+  }))
+)
+
+function teacherNames(g) {
+  return g.teacher_ids.map((tid) => data.teachers.find((t) => t.id === tid)?.name ?? tid).join('、')
+}
+
+function exportStudents() {
+  const rows = data.students.map((s) => ({
+    學號: s.student_id,
+    姓名: s.name,
+    班級: s.class_ ?? '',
+    學年度: s.school_year,
+    狀態: s.status === 'inactive' ? '休退學' : '在學',
+    組別: data.groups.find((g) => g.id === s.group_id)?.name ?? '',
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '學生')
+  XLSX.writeFile(wb, `學生資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
+function exportGroups() {
+  const rows = data.groups.map((g) => ({
+    學年度: g.school_year,
+    組號: g.number,
+    專題名稱: g.name,
+    類別: g.category ?? '',
+    指導老師: teacherNames(g),
+    組員數: data.students.filter((s) => s.group_id === g.id).length,
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '組別')
+  XLSX.writeFile(wb, `組別資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 // ───────── 新增學生 (single) ─────────
@@ -72,6 +137,49 @@ async function submitStudent() {
     sError.value = e.message ?? '新增失敗'
   } finally {
     sBusy.value = false
+  }
+}
+
+// ───────── 新增組別 ─────────
+const gForm = ref({ school_year: '', number: '', name: '', category: '', teacher_ids: [] })
+const gError = ref('')
+const gOk = ref('')
+const gBusy = ref(false)
+const showGOk = flash(gOk)
+
+function resetGroupForm() {
+  gForm.value = { school_year: years.value[0] || '', number: '', name: '', category: '', teacher_ids: [] }
+}
+
+function toggleGroupTeacher(id) {
+  const arr = gForm.value.teacher_ids
+  const i = arr.indexOf(id)
+  if (i === -1) arr.push(id)
+  else arr.splice(i, 1)
+}
+
+async function submitGroup() {
+  gError.value = ''
+  if (!gForm.value.school_year.trim()) { gError.value = '請填寫學年度'; return }
+  if (!String(gForm.value.number).trim()) { gError.value = '請填寫組號'; return }
+  if (!gForm.value.name.trim()) { gError.value = '請填寫專題名稱'; return }
+  if (gBusy.value) return
+  gBusy.value = true
+  try {
+    const g = await data.createGroup({
+      number: parseInt(gForm.value.number, 10),
+      name: gForm.value.name.trim(),
+      category: gForm.value.category.trim() || null,
+      school_year: gForm.value.school_year.trim(),
+      leader_id: null,
+      teacher_ids: [...gForm.value.teacher_ids],
+    })
+    showGOk(`已新增組別：第 ${g.number} 組 ${g.name}`)
+    resetGroupForm()
+  } catch (e) {
+    gError.value = e.message ?? '新增失敗'
+  } finally {
+    gBusy.value = false
   }
 }
 
@@ -205,40 +313,6 @@ function downloadTemplate() {
   XLSX.writeFile(wb, '學生匯入範本.xlsx')
 }
 
-// ───────── 異動紀錄 (audit log) ─────────
-const logs = ref([])
-const logsLoading = ref(false)
-const logsError = ref('')
-
-const ACTION_LABEL = { create: '新增', update: '修改', delete: '刪除', import: '匯入' }
-const ACTION_CLASS = {
-  create: 'text-emerald-600 dark:text-emerald-400',
-  update: 'text-blue-600 dark:text-cyan-400',
-  delete: 'text-red-500 dark:text-red-400',
-  import: 'text-violet-600 dark:text-violet-400',
-}
-const ENTITY_LABEL = { student: '學生', group: '組別', teacher: '老師', account: '帳號' }
-
-async function loadLogs() {
-  logsLoading.value = true
-  logsError.value = ''
-  try {
-    logs.value = await api.get('/audit-logs')
-  } catch (e) {
-    logsError.value = e.message ?? '載入異動紀錄失敗'
-  } finally {
-    logsLoading.value = false
-  }
-}
-
-function fmtTime(iso) {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
-
-watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
 </script>
 
 <template>
@@ -251,14 +325,14 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
       <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
-    <div v-else class="max-w-3xl space-y-5">
+    <div v-else class="w-full space-y-5">
       <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">資料管理</h2>
 
       <!-- tabs -->
-      <div class="flex gap-1 border-b border-slate-200 dark:border-[#2a3347]">
+      <div class="flex gap-1 border-b border-slate-200 dark:border-[#2a3347] overflow-x-auto">
         <button
           v-for="t in TABS" :key="t.key" @click="tab = t.key"
-          class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors cursor-pointer"
+          class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors cursor-pointer whitespace-nowrap"
           :class="tab === t.key
             ? 'border-blue-500 dark:border-cyan-400 text-blue-600 dark:text-cyan-400'
             : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
@@ -267,8 +341,82 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
         </button>
       </div>
 
+      <!-- 總覽 -->
+      <div v-show="tab === 'overview'" class="space-y-5">
+        <!-- stat cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="card p-5">
+            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+              <Users class="w-4 h-4" /> 學生總數
+            </div>
+            <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.students }}</p>
+            <p class="text-xs text-slate-400 mt-1">在學 {{ stats.active }}・休退 {{ stats.inactive }}</p>
+          </div>
+          <div class="card p-5">
+            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+              <LayoutList class="w-4 h-4" /> 組別總數
+            </div>
+            <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.groups }}</p>
+            <p class="text-xs text-slate-400 mt-1">已分組 {{ stats.grouped }}・未分組 {{ stats.ungrouped }}</p>
+          </div>
+          <div class="card p-5">
+            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+              <GraduationCap class="w-4 h-4" /> 老師總數
+            </div>
+            <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.teachers }}</p>
+            <p class="text-xs text-slate-400 mt-1">指導老師</p>
+          </div>
+          <div class="card p-5">
+            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+              <LayoutDashboard class="w-4 h-4" /> 學年度數
+            </div>
+            <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.years }}</p>
+            <p class="text-xs text-slate-400 mt-1">涵蓋學年</p>
+          </div>
+        </div>
+
+        <!-- by year + export -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="card p-0 overflow-hidden lg:col-span-2">
+            <div class="px-5 py-3 border-b border-slate-100 dark:border-[#2a3347]">
+              <p class="text-sm font-medium text-slate-600 dark:text-slate-300">各學年度統計</p>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-400">
+                <tr>
+                  <th class="text-left px-5 py-2 font-medium">學年度</th>
+                  <th class="text-left px-3 py-2 font-medium">學生數</th>
+                  <th class="text-left px-3 py-2 font-medium">組別數</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50 dark:divide-[#1e2535]">
+                <tr v-for="r in byYear" :key="r.year" class="hover:bg-slate-50 dark:hover:bg-[#1a2235]">
+                  <td class="px-5 py-2 text-slate-600 dark:text-slate-300">{{ toRoc(r.year) }}</td>
+                  <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ r.students }}</td>
+                  <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ r.groups }}</td>
+                </tr>
+                <tr v-if="!byYear.length">
+                  <td colspan="3" class="px-5 py-8 text-center text-sm text-slate-400">尚無資料</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card p-5 space-y-3">
+            <p class="text-sm font-medium text-slate-600 dark:text-slate-300">匯出資料</p>
+            <p class="text-xs text-slate-400">將目前資料匯出為 Excel 檔案，方便備份或交接。</p>
+            <button class="btn-secondary w-full flex items-center justify-center gap-1.5" @click="exportStudents">
+              <Download class="w-4 h-4" /> 匯出學生（{{ stats.students }}）
+            </button>
+            <button class="btn-secondary w-full flex items-center justify-center gap-1.5" @click="exportGroups">
+              <Download class="w-4 h-4" /> 匯出組別（{{ stats.groups }}）
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 新增學生 -->
-      <div v-show="tab === 'student'" class="card p-6">
+      <div v-show="tab === 'student'" class="card p-6 max-w-3xl">
         <form @submit.prevent="submitStudent" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -308,6 +456,55 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
         <p class="text-xs text-slate-400 mt-3">新增的學生預設為未分組，分組請至「學生更動」頁面操作。</p>
       </div>
 
+      <!-- 新增組別 -->
+      <div v-show="tab === 'group'" class="card p-6 max-w-3xl">
+        <form @submit.prevent="submitGroup" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="label">學年度 <span class="text-red-400">*</span></label>
+              <input v-model="gForm.school_year" list="dv-years" class="input" placeholder="114" />
+            </div>
+            <div>
+              <label class="label">組號 <span class="text-red-400">*</span></label>
+              <input v-model="gForm.number" type="number" min="1" class="input" placeholder="1" />
+            </div>
+            <div class="col-span-2">
+              <label class="label">專題名稱 <span class="text-red-400">*</span></label>
+              <input v-model="gForm.name" class="input" placeholder="專題主題 / 名稱" />
+            </div>
+            <div class="col-span-2">
+              <label class="label">類別</label>
+              <input v-model="gForm.category" class="input" placeholder="例如 遊戲、動畫" />
+            </div>
+          </div>
+          <div>
+            <label class="label">指導老師</label>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <button
+                type="button"
+                v-for="t in data.teachers" :key="t.id"
+                @click="toggleGroupTeacher(t.id)"
+                class="px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer"
+                :class="gForm.teacher_ids.includes(t.id)
+                  ? 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-200 dark:border-cyan-800/40'
+                  : 'bg-slate-100 dark:bg-[#2a3347] text-slate-500 dark:text-slate-400 border-transparent hover:border-slate-300 dark:hover:border-slate-600'"
+              >
+                {{ t.name }}
+              </button>
+              <span v-if="!data.teachers.length" class="text-xs text-slate-400">尚無老師，請先至「新增老師」建立。</span>
+            </div>
+          </div>
+          <p v-if="gError" class="text-xs text-red-500">{{ gError }}</p>
+          <p v-if="gOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ gOk }}</p>
+          <div class="flex justify-end">
+            <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="gBusy">
+              <FolderPlus class="w-4 h-4" /> {{ gBusy ? '新增中…' : '新增組別' }}
+            </button>
+          </div>
+        </form>
+        <p class="text-xs text-slate-400 mt-3">建立後可至「組別列表」檢視，組員與組長指定請至「組別異動」頁面操作。</p>
+      </div>
+
       <!-- 批次匯入 -->
       <div v-show="tab === 'bulk'" class="card p-6 space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -333,7 +530,7 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
         <p v-if="bulkError" class="text-xs text-red-500">{{ bulkError }}</p>
 
         <div v-if="bulkRows.length" class="border border-slate-200 dark:border-[#2a3347] rounded-lg overflow-hidden">
-          <div class="max-h-72 overflow-auto">
+          <div class="max-h-96 overflow-auto">
             <table class="w-full text-sm">
               <thead class="bg-slate-50 dark:bg-[#161b27] sticky top-0">
                 <tr class="text-xs text-slate-400">
@@ -378,7 +575,7 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
       </div>
 
       <!-- 新增老師 -->
-      <div v-show="tab === 'teacher'" class="card p-6">
+      <div v-show="tab === 'teacher'" class="card p-6 max-w-3xl">
         <form @submit.prevent="submitTeacher" class="space-y-4">
           <div>
             <label class="label">老師姓名 <span class="text-red-400">*</span></label>
@@ -404,43 +601,6 @@ watch(tab, (t) => { if (t === 'audit' && !logs.value.length) loadLogs() })
         </div>
       </div>
 
-      <!-- 異動紀錄 -->
-      <div v-show="tab === 'audit'" class="card p-0 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-[#2a3347]">
-          <p class="text-sm font-medium text-slate-600 dark:text-slate-300">最近異動紀錄</p>
-          <button class="text-xs text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 flex items-center gap-1 cursor-pointer"
-                  @click="loadLogs">
-            <RefreshCw class="w-3.5 h-3.5" :class="logsLoading ? 'animate-spin' : ''" /> 重新整理
-          </button>
-        </div>
-
-        <p v-if="logsError" class="px-5 py-4 text-xs text-red-500">{{ logsError }}</p>
-        <p v-else-if="logsLoading && !logs.length" class="px-5 py-10 text-center text-sm text-slate-400">載入中…</p>
-        <p v-else-if="!logs.length" class="px-5 py-10 text-center text-sm text-slate-400">尚無異動紀錄</p>
-
-        <table v-else class="w-full text-sm">
-          <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-400">
-            <tr>
-              <th class="text-left px-5 py-2 font-medium">時間</th>
-              <th class="text-left px-3 py-2 font-medium">操作者</th>
-              <th class="text-left px-3 py-2 font-medium">動作</th>
-              <th class="text-left px-3 py-2 font-medium">對象</th>
-              <th class="text-left px-3 py-2 font-medium">內容</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-50 dark:divide-[#1e2535]">
-            <tr v-for="l in logs" :key="l.id" class="hover:bg-slate-50 dark:hover:bg-[#1a2235]">
-              <td class="px-5 py-2 text-xs text-slate-400 whitespace-nowrap">{{ fmtTime(l.created_at) }}</td>
-              <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ l.actor }}</td>
-              <td class="px-3 py-2 font-medium whitespace-nowrap" :class="ACTION_CLASS[l.action]">
-                {{ ACTION_LABEL[l.action] ?? l.action }}
-              </td>
-              <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ ENTITY_LABEL[l.entity] ?? l.entity }}</td>
-              <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ l.summary }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   </AppLayout>
 </template>

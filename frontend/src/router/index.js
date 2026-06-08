@@ -8,8 +8,10 @@ const routes = [
   { path: '/changes/group-change', name: 'GroupChange', component: () => import('@/views/changes/GroupChangeView.vue') },
   { path: '/documents', name: 'Documents', component: () => import('@/views/DocumentsView.vue') },
   { path: '/data', name: 'Data', component: () => import('@/views/DataView.vue') },
+  { path: '/audit-logs', name: 'AuditLogs', component: () => import('@/views/AuditLogView.vue') },
   { path: '/accounts', name: 'Accounts', component: () => import('@/views/AccountsView.vue') },
   { path: '/permissions', name: 'Permissions', component: () => import('@/views/PermissionsView.vue') },
+  { path: '/about', name: 'About', component: () => import('@/views/AboutView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/students' },
 ]
 

@@ -193,7 +193,8 @@ async function confirmWithdraw() {
 
 <template>
   <AppLayout>
-    <div class="flex gap-6 h-full">
+    <!-- stu-change: light-mode parchment overrides are scoped to this class in main.css -->
+    <div class="stu-change flex gap-6 h-full">
 
       <!-- ═══ LEFT: Search panel ═══ -->
       <div class="w-96 flex-shrink-0 flex flex-col gap-5">

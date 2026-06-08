@@ -38,7 +38,7 @@ async function handleLogin() {
                    border-b border-slate-200 dark:border-[#2a3347]">
       <div class="flex items-center gap-2">
         <GraduationCap class="w-5 h-5 text-blue-600 dark:text-cyan-400" />
-        <span class="font-bold text-blue-600 dark:text-cyan-400 text-sm tracking-wide">畢業專題</span>
+        <span class="font-bold text-blue-600 dark:text-cyan-400 text-sm tracking-wide">弘光多遊系畢業專題</span>
       </div>
       <button
         @click="theme.toggle()"
