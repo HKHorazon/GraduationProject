@@ -1,0 +1,1 @@
+function s(r){if(r==null||r==="")return"";const t=String(r).trim();if(/^\d{1,3}$/.test(t))return t;const n=t.match(/^(\d{4})/);return n?String(parseInt(n[1],10)-1911):t}function i(r){return r?String(r).trim().replace(/^[一二三四五六七八九十\d]+\s*年?/,""):""}function u(r,t){const n=s(r),e=i(t);return e?`${n}${e}`:n}export{i as c,s as r,u as y};
