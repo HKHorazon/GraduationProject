@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
@@ -7,11 +8,29 @@ import {
   FolderPlus, X, Save, Trash2, Users, GraduationCap, ShieldOff, Check, FileText, Search,
 } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
+import StudentName from '@/components/common/StudentName.vue'
 
 const auth = useAuthStore()
 const data = useDataStore()
+const route = useRoute()
 
-onMounted(() => { data.loadAll() })
+// 連動：?group=<id> 直接選取該組（全站組別點擊都導到這裡）
+function applyRouteGroup() {
+  const id = route.query.group
+  if (!id || !data.loaded) return
+  const g = data.groups.find((x) => x.id === id)
+  if (g) {
+    selectGroup(g.id)
+    search.value = g.name // 左側列表同步顯示
+  }
+}
+
+watch([() => route.query.group, () => data.loaded], applyRouteGroup)
+
+onMounted(async () => {
+  await data.loadAll()
+  applyRouteGroup()
+})
 
 // ---- filters / list ----
 const filterYear = ref('')
@@ -405,7 +424,7 @@ async function doDisband() {
                 <!-- info -->
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-base font-semibold text-slate-800 dark:text-slate-100">{{ m.name }}</span>
+                    <span class="text-base font-semibold text-slate-800 dark:text-slate-100"><StudentName :student="m" /></span>
                     <span v-if="m.id === selected.leader_id"
                           class="text-[10px] px-1.5 py-0.5 rounded font-medium
                                  bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400

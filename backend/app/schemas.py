@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------- Teacher ----------
@@ -102,6 +102,11 @@ class AccountCreate(BaseModel):
     teacher_id: str | None = None
 
 
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=6)
+
+
 class AccountUpdate(BaseModel):
     username: str | None = None
     password: str | None = None
@@ -118,8 +123,9 @@ class AuditLogOut(BaseModel):
     id: int
     created_at: datetime
     actor: str
-    action: str
-    entity: str
-    entity_id: str | None = None
+    event: str
     summary: str
+    student_id: str | None = None
+    teacher_id: str | None = None
+    group_id: str | None = None
     model_config = ConfigDict(from_attributes=True)

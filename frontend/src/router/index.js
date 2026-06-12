@@ -7,6 +7,7 @@ const routes = [
   { path: '/changes/remove-student', name: 'RemoveStudent', component: () => import('@/views/changes/RemoveStudentView.vue') },
   { path: '/changes/group-change', name: 'GroupChange', component: () => import('@/views/changes/GroupChangeView.vue') },
   { path: '/documents', name: 'Documents', component: () => import('@/views/DocumentsView.vue') },
+  { path: '/documents/export', name: 'DocumentsExport', component: () => import('@/views/DocumentsExportView.vue') },
   { path: '/data', name: 'Data', component: () => import('@/views/DataView.vue') },
   { path: '/audit-logs', name: 'AuditLogs', component: () => import('@/views/AuditLogView.vue') },
   { path: '/accounts', name: 'Accounts', component: () => import('@/views/AccountsView.vue') },
@@ -16,7 +17,9 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // base 必須跟 vite.config.js 的 base 一致，否則網址會掉前綴、
+  // 重新整理/深層連結會 404
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 

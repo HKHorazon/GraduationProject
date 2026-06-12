@@ -41,5 +41,12 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = 'viewer'
   }
 
-  return { user, role, isLoggedIn, isEditor, isSuperAdmin, init, signIn, signOut }
+  async function changePassword(oldPassword, newPassword) {
+    await api.post('/auth/change-password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    })
+  }
+
+  return { user, role, isLoggedIn, isEditor, isSuperAdmin, init, signIn, signOut, changePassword }
 })

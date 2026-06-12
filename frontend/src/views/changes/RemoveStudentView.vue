@@ -1,13 +1,35 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
-import { Search, X, ArrowRightLeft, UserMinus, UserPlus, Check, UserX, ChevronRight, GraduationCap, Users } from 'lucide-vue-next'
+import { Search, X, ArrowRightLeft, UserMinus, UserPlus, Check, UserX, ChevronRight, GraduationCap, Users, ShieldOff } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
+import StudentName from '@/components/common/StudentName.vue'
+import GroupName from '@/components/common/GroupName.vue'
 
+const auth = useAuthStore()
 const data = useDataStore()
+const route = useRoute()
 
-onMounted(() => { data.loadAll() })
+// 連動：?student=<id> 直接選取該學生（全站人名點擊都導到這裡）
+function applyRouteStudent() {
+  const id = route.query.student
+  if (!id || !data.loaded) return
+  const s = data.students.find((x) => x.id === id)
+  if (s) {
+    selectStudent(s)
+    query.value = s.student_id // 左側列表同步顯示
+  }
+}
+
+watch([() => route.query.student, () => data.loaded], applyRouteStudent)
+
+onMounted(async () => {
+  await data.loadAll()
+  applyRouteStudent()
+})
 
 function groupLabel(g) {
   return `${rocYear(g.school_year)} 學年 第${g.number}組 — ${g.name}`
@@ -193,8 +215,18 @@ async function confirmWithdraw() {
 
 <template>
   <AppLayout>
+    <!-- 編輯權限守門：學生更動是編輯功能，未登入/viewer 不可見（個資保護） -->
+    <div v-if="!auth.isEditor"
+         class="flex flex-col items-center justify-center h-64 gap-3 text-center">
+      <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
+        <ShieldOff class="w-6 h-6 text-slate-400" />
+      </div>
+      <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
+      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+    </div>
+
     <!-- stu-change: light-mode parchment overrides are scoped to this class in main.css -->
-    <div class="stu-change flex gap-6 h-full">
+    <div v-else class="stu-change flex gap-6 h-full">
 
       <!-- ═══ LEFT: Search panel ═══ -->
       <div class="w-96 flex-shrink-0 flex flex-col gap-5">
@@ -371,7 +403,7 @@ async function confirmWithdraw() {
                 <div class="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-dark-border/60">
                   <span class="text-[11px] font-mono text-cyan-600 dark:text-cyan-500 flex-shrink-0">第 {{ currentGroup.number }} 組</span>
                   <ChevronRight class="w-3 h-3 text-slate-400 dark:text-slate-600 flex-shrink-0" />
-                  <p class="text-sm text-slate-800 dark:text-slate-200 font-medium truncate flex-1">{{ currentGroup.name }}</p>
+                  <p class="text-sm text-slate-800 dark:text-slate-200 font-medium truncate flex-1"><GroupName :group="currentGroup" /></p>
                   <span v-if="currentGroup.category"
                         class="text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0
                                border border-cyan-400/30 bg-cyan-50 dark:bg-cyan-400/5 text-cyan-600 dark:text-cyan-400">
@@ -395,7 +427,7 @@ async function confirmWithdraw() {
                       <template v-for="(m, i) in groupMembers(currentGroup.id)" :key="m.id"><span :class="[
                           m.id === currentGroup.leader_id ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300',
                           m.id === selected.id ? 'underline decoration-cyan-500/60 underline-offset-2' : ''
-                        ]">{{ m.name }}</span><span v-if="i < groupMembers(currentGroup.id).length - 1" class="text-slate-400 dark:text-slate-600">、</span></template>
+                        ]"><StudentName :student="m" /></span><span v-if="i < groupMembers(currentGroup.id).length - 1" class="text-slate-400 dark:text-slate-600">、</span></template>
                     </div>
                   </div>
                 </div>

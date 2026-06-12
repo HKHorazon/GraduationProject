@@ -25,8 +25,8 @@ const classes = computed(() =>
 const TABS = [
   { key: 'overview', label: '總覽', icon: LayoutDashboard },
   { key: 'student', label: '新增學生', icon: UserPlus },
+  { key: 'bulk', label: '批次匯入學生', icon: Upload },
   { key: 'group', label: '新增組別', icon: FolderPlus },
-  { key: 'bulk', label: '批次匯入', icon: Upload },
   { key: 'teacher', label: '新增老師', icon: GraduationCap },
 ]
 const tab = ref('overview')
@@ -72,47 +72,50 @@ function teacherNames(g) {
 }
 
 function exportStudents() {
-  const rows = data.students.map((s) => ({
-    學號: s.student_id,
-    姓名: s.name,
-    班級: s.class_ ?? '',
-    學年度: s.school_year,
-    狀態: s.status === 'inactive' ? '休退學' : '在學',
-    組別: data.groups.find((g) => g.id === s.group_id)?.name ?? '',
-  }))
-  const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '學生')
+  for (const y of years.value) {
+    const rows = data.students
+      .filter((s) => s.school_year === y)
+      .map((s) => ({
+        學號: s.student_id,
+        姓名: s.name,
+        班級: s.class_ ?? '',
+        狀態: s.status === 'inactive' ? '休退學' : '在學',
+        組別: data.groups.find((g) => g.id === s.group_id)?.name ?? '',
+      }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `${rocYear(y)}學年`)
+  }
   XLSX.writeFile(wb, `學生資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 function exportGroups() {
-  const rows = data.groups.map((g) => ({
-    學年度: g.school_year,
-    組號: g.number,
-    專題名稱: g.name,
-    類別: g.category ?? '',
-    指導老師: teacherNames(g),
-    組員數: data.students.filter((s) => s.group_id === g.id).length,
-  }))
-  const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '組別')
+  const groupYears = [...new Set(data.groups.map((g) => g.school_year))].sort().reverse()
+  for (const y of groupYears) {
+    const rows = data.groups
+      .filter((g) => g.school_year === y)
+      .sort((a, b) => a.number - b.number)
+      .map((g) => ({
+        組號: g.number,
+        專題名稱: g.name,
+        類別: g.category ?? '',
+        指導老師: teacherNames(g),
+        組員數: data.students.filter((s) => s.group_id === g.id).length,
+      }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `${rocYear(y)}學年`)
+  }
   XLSX.writeFile(wb, `組別資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 // ───────── 新增學生 (single) ─────────
-const sForm = ref({ student_id: '', name: '', class_: '', school_year: '', status: 'active' })
+const sForm = ref({ student_id: '', name: '', class_: '', school_year: '' })
 const sError = ref('')
 const sOk = ref('')
 const sBusy = ref(false)
 const showOk = flash(sOk)
 
 function resetStudentForm() {
-  sForm.value = {
-    student_id: '', name: '', class_: '',
-    school_year: years.value[0] || '', status: 'active',
-  }
+  sForm.value = { student_id: '', name: '', class_: '', school_year: years.value[0] || '' }
 }
 
 async function submitStudent() {
@@ -128,7 +131,7 @@ async function submitStudent() {
       name: sForm.value.name.trim(),
       class_: sForm.value.class_.trim() || null,
       school_year: sForm.value.school_year.trim(),
-      status: sForm.value.status,
+      status: 'active',
       group_id: null,
     })
     showOk(`已新增學生：${s.name}（${s.student_id}）`)
@@ -263,8 +266,7 @@ async function onFile(e) {
       const row = { student_id: '', name: '', class_: '', school_year: '', status: 'active' }
       for (const [k, v] of Object.entries(obj)) {
         const field = mapKey(k)
-        if (field === 'status') row.status = normStatus(v)
-        else if (field) row[field] = String(v).trim()
+        if (field && field !== 'status') row[field] = String(v).trim()
       }
       let err = ''
       if (!row.student_id) err = '缺少學號'
@@ -305,8 +307,8 @@ async function importBulk() {
 
 function downloadTemplate() {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['學號', '姓名', '班級', '學年度', '狀態'],
-    ['A12345', '王小明', '三甲', '114', '在學'],
+    ['學號', '姓名', '班級', '學年度'],
+    ['A12345', '王小明', '甲', '114'],
   ])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '學生')
@@ -437,13 +439,6 @@ function downloadTemplate() {
               <input v-model="sForm.school_year" list="dv-years" class="input" placeholder="114" />
               <datalist id="dv-years"><option v-for="y in years" :key="y" :value="y" /></datalist>
             </div>
-            <div>
-              <label class="label">狀態</label>
-              <select v-model="sForm.status" class="input">
-                <option value="active">在學</option>
-                <option value="inactive">休退學</option>
-              </select>
-            </div>
           </div>
           <p v-if="sError" class="text-xs text-red-500">{{ sError }}</p>
           <p v-if="sOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ sOk }}</p>
@@ -539,7 +534,6 @@ function downloadTemplate() {
                   <th class="text-left px-3 py-2">姓名</th>
                   <th class="text-left px-3 py-2">班級</th>
                   <th class="text-left px-3 py-2">學年度</th>
-                  <th class="text-left px-3 py-2">狀態</th>
                   <th class="text-left px-3 py-2">檢查</th>
                 </tr>
               </thead>
@@ -550,7 +544,6 @@ function downloadTemplate() {
                   <td class="px-3 py-1.5">{{ r.name }}</td>
                   <td class="px-3 py-1.5 text-slate-500">{{ r.class_ }}</td>
                   <td class="px-3 py-1.5 text-slate-500">{{ r.school_year }}</td>
-                  <td class="px-3 py-1.5 text-slate-500">{{ r.status === 'inactive' ? '休退學' : '在學' }}</td>
                   <td class="px-3 py-1.5 text-xs">
                     <span v-if="r._error" class="text-red-500">{{ r._error }}</span>
                     <span v-else class="text-emerald-600 dark:text-emerald-400">OK</span>

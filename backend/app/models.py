@@ -78,12 +78,35 @@ class Account(Base):
 
 
 class AuditLog(Base):
+    """Human-readable event timeline (shown in 異動紀錄).
+
+    One row = one semantic event (e.g. student_join). The three ref columns
+    deliberately have no FK so history survives record deletion.
+    """
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow, index=True)
     actor = Column(String, nullable=False)          # username who made the change
-    action = Column(String, nullable=False)         # create | update | delete | import
-    entity = Column(String, nullable=False)         # student | group | teacher | account
-    entity_id = Column(String, nullable=True)
-    summary = Column(String, nullable=False)        # human-readable description
+    event = Column(String, nullable=False, index=True)  # e.g. group_create / student_join
+    summary = Column(String, nullable=False)        # human-readable, includes old → new
+    student_id = Column(String, nullable=True)      # related Student.id
+    teacher_id = Column(String, nullable=True)      # related Teacher.id
+    group_id = Column(String, nullable=True)        # related Group.id
+
+
+class DbLog(Base):
+    """Raw technical log of every write operation (debug/forensics only).
+
+    Records everything — including account changes and hard deletes that the
+    human-facing audit_logs intentionally omits. Not shown in the UI.
+    """
+    __tablename__ = "db_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow, index=True)
+    actor = Column(String, nullable=False)
+    method = Column(String, nullable=False)         # create | update | delete | import
+    table_name = Column(String, nullable=False)     # students | groups | teachers | accounts
+    record_id = Column(String, nullable=True)
+    payload = Column(String, nullable=True)         # JSON: changed fields / old & new values
