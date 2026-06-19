@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,17 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:8080"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @field_validator("database_url")
+    @classmethod
+    def _force_psycopg_driver(cls, v: str) -> str:
+        # Railway's Postgres plugin hands out postgresql://… (and some hosts use
+        # the legacy postgres://). SQLAlchemy + psycopg3 needs the +psycopg driver.
+        if v.startswith("postgres://"):
+            v = "postgresql://" + v[len("postgres://"):]
+        if v.startswith("postgresql://"):
+            v = "postgresql+psycopg://" + v[len("postgresql://"):]
+        return v
 
     @property
     def cors_origin_list(self) -> list[str]:
