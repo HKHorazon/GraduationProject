@@ -6,7 +6,7 @@ import SidebarGroup from './SidebarGroup.vue'
 import SidebarItem from './SidebarItem.vue'
 import {
   Search, Users, LayoutList, RefreshCw,
-  UserMinus, FolderCog, FileText, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
+  UserMinus, FolderCog, FileInput, FileOutput, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -55,8 +55,12 @@ function toggleCollapse() {
         <SidebarItem v-if="perms.canAccess('group-change', auth.role)" to="/changes/group-change" label="組別異動" :icon="FolderCog" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="perms.canAccess('documents', auth.role)" label="文件" :icon="FileStack" :collapsed="collapsed">
-        <SidebarItem to="/documents" label="文件處理" :icon="FileText" :collapsed="collapsed" />
+      <SidebarGroup
+        v-if="perms.canAccess('documents', auth.role) || perms.canAccess('documents-export', auth.role)"
+        label="文件" :icon="FileStack" :collapsed="collapsed"
+      >
+        <SidebarItem v-if="perms.canAccess('documents', auth.role)" to="/documents" label="文件輸入" :icon="FileInput" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canAccess('documents-export', auth.role)" to="/documents/export" label="文件輸出" :icon="FileOutput" :collapsed="collapsed" />
       </SidebarGroup>
 
       <SidebarGroup v-if="perms.canAccess('data', auth.role) || perms.canAccess('audit-logs', auth.role)" label="資料" :icon="Database" :collapsed="collapsed">

@@ -40,8 +40,9 @@ def create_account(
         teacher_id=body.teacher_id,
     )
     db.add(account)
-    audit.record(db, actor, "create", "account", account.id,
-                 f"新增帳號 {account.username}（{account.role}）")
+    # account changes never appear in the human timeline — db_logs only
+    audit.dblog(db, actor, "create", "accounts", account.id,
+                {"username": account.username, "role": account.role})
     db.commit()
     db.refresh(account)
     return account
@@ -65,8 +66,8 @@ def update_account(
             account.password_hash = hash_password(password)
     for field, value in data.items():
         setattr(account, field, value)
-    audit.record(db, actor, "update", "account", account.id,
-                 f"修改帳號 {account.username}：{'、'.join(changed)}")
+    audit.dblog(db, actor, "update", "accounts", account.id,
+                {"username": account.username, "fields": changed})
     db.commit()
     db.refresh(account)
     return account
@@ -81,6 +82,7 @@ def delete_account(
     account = db.get(Account, account_id)
     if not account:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
-    audit.record(db, actor, "delete", "account", account.id, f"刪除帳號 {account.username}")
+    audit.dblog(db, actor, "delete", "accounts", account.id,
+                {"username": account.username})
     db.delete(account)
     db.commit()

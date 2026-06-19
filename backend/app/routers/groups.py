@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from .. import audit
 from ..db import get_db
 from ..deps import require_editor
-from ..models import Account, Group, Teacher
+from ..models import Account, Group, Student, Teacher
 from ..schemas import GroupCreate, GroupOut, GroupUpdate
 
 router = APIRouter()
@@ -65,8 +65,10 @@ def create_group(
         teachers=_load_teachers(db, body.teacher_ids),
     )
     db.add(group)
-    audit.record(db, actor, "create", "group", group.id,
-                 f"新增組別 第{group.number}組 {group.name}")
+    audit.event(db, actor, "group_create",
+                f"建立 第{group.number}組「{group.name}」（{group.school_year}學年）",
+                group_id=group.id)
+    audit.dblog(db, actor, "create", "groups", group.id, body.model_dump())
     db.commit()
     db.refresh(group)
     return _to_out(group)
@@ -83,15 +85,47 @@ def update_group(
     if not group:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Group not found")
     data = body.model_dump(exclude_unset=True)
-    changed = []
+    label = f"第{group.number}組"
+    raw_changes: dict = {}
+
+    # each meaningful field change becomes its own human event (with old → new)
     if "teacher_ids" in data:
-        group.teachers = _load_teachers(db, data.pop("teacher_ids"))
-        changed.append("指導老師")
+        old_teachers = [t.name for t in group.teachers]
+        new_list = _load_teachers(db, data.pop("teacher_ids"))
+        group.teachers = new_list
+        new_teachers = [t.name for t in new_list]
+        if old_teachers != new_teachers:
+            added = [t for t in new_list if t.name not in old_teachers]
+            audit.event(db, actor, "group_teachers",
+                        f"{label} 指導老師：{'、'.join(old_teachers) or '（無）'} → "
+                        f"{'、'.join(new_teachers) or '（無）'}",
+                        group_id=group.id,
+                        teacher_id=added[0].id if len(added) == 1 else None)
+            raw_changes["teacher_ids"] = {"old": old_teachers, "new": new_teachers}
+
     for field, value in data.items():
+        old = getattr(group, field)
+        if old == value:
+            continue
         setattr(group, field, value)
-        changed.append(field)
-    audit.record(db, actor, "update", "group", group.id,
-                 f"修改組別 第{group.number}組 {group.name}：{'、'.join(changed)}")
+        raw_changes[field] = {"old": old, "new": value}
+        if field == "name":
+            audit.event(db, actor, "group_rename",
+                        f"{label} 題目：「{old}」→「{value}」", group_id=group.id)
+        elif field == "category":
+            audit.event(db, actor, "group_category",
+                        f"{label} 類別：{old or '（無）'} → {value or '（無）'}",
+                        group_id=group.id)
+        elif field == "leader_id":
+            leader = db.get(Student, value) if value else None
+            audit.event(db, actor, "group_leader",
+                        f"{label} 組長：{leader.name if leader else '（無）'}"
+                        + (f"（{leader.student_id}）" if leader else ""),
+                        group_id=group.id, student_id=value)
+        # number / school_year edits: db_logs only
+
+    if raw_changes:
+        audit.dblog(db, actor, "update", "groups", group.id, raw_changes)
     db.commit()
     db.refresh(group)
     return _to_out(group)
@@ -106,7 +140,10 @@ def delete_group(
     group = db.get(Group, group_id)
     if not group:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Group not found")
-    audit.record(db, actor, "delete", "group", group.id,
-                 f"解散組別 第{group.number}組 {group.name}")
+    audit.event(db, actor, "group_delete",
+                f"解散 第{group.number}組「{group.name}」（{group.school_year}學年）",
+                group_id=group.id)
+    audit.dblog(db, actor, "delete", "groups", group.id,
+                {"number": group.number, "name": group.name})
     db.delete(group)
     db.commit()

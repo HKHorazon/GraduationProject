@@ -6,6 +6,8 @@ import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
+import StudentName from '@/components/common/StudentName.vue'
+import GroupName from '@/components/common/GroupName.vue'
 
 const auth = useAuthStore()
 const data = useDataStore()
@@ -174,8 +176,8 @@ function groupActions(g) {
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
                 <td class="px-3 py-2.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{{ toRoc(g.school_year) }}</td>
-                <td class="px-3 py-2.5 id-mono text-xs whitespace-nowrap">第 {{ g.number }} 組</td>
-                <td class="px-3 py-2.5 font-medium text-slate-800 dark:text-slate-100 text-sm">{{ g.name }}</td>
+                <td class="px-3 py-2.5 id-mono text-xs whitespace-nowrap"><GroupName :group="g" :label="`第 ${g.number} 組`" /></td>
+                <td class="px-3 py-2.5 font-medium text-slate-800 dark:text-slate-100 text-sm"><GroupName :group="g" /></td>
                 <td class="px-3 py-2.5 whitespace-nowrap">
                   <span class="px-1.5 py-0.5 rounded text-xs
                                bg-slate-100 dark:bg-[#2a3347]
@@ -193,7 +195,7 @@ function groupActions(g) {
                       :class="s.id === g.leader_id
                         ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700/40 font-medium'
                         : 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-100 dark:border-cyan-800/30'"
-                    >{{ s.name }}</span>
+                    ><StudentName :student="s" /></span>
                     <span v-if="members(g.id).length === 0" class="text-slate-400 dark:text-slate-600 text-xs">—</span>
                   </div>
                 </td>

@@ -7,6 +7,8 @@ import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear, yearClass } from '@/lib/year'
+import StudentName from '@/components/common/StudentName.vue'
+import GroupName from '@/components/common/GroupName.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -111,7 +113,7 @@ function studentActions(s) {
       icon: UserMinus,
       danger: true,
       disabled: !s.group_id,
-      handler: () => router.push('/changes/remove-student'),
+      handler: () => router.push({ path: '/changes/remove-student', query: { student: s.id } }),
     },
   ]
 }
@@ -185,7 +187,7 @@ function studentActions(s) {
               >
                 <td class="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
-                <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">{{ s.name }}</td>
+                <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100"><StudentName :student="s" /></td>
                 <td class="px-4 py-3">
                   <span v-if="s.group_id" class="flex items-center gap-1">
                     <span
@@ -193,7 +195,7 @@ function studentActions(s) {
                              bg-blue-50 dark:bg-cyan-900/20
                              text-blue-700 dark:text-cyan-400
                              border border-blue-200 dark:border-cyan-800/50">
-                      第 {{ getGroup(s.group_id)?.number }} 組
+                      <GroupName :id="s.group_id" :label="`第 ${getGroup(s.group_id)?.number} 組`" />
                     </span>
                     <span
                       v-if="getGroup(s.group_id)?.leader_id === s.id"
@@ -208,7 +210,10 @@ function studentActions(s) {
                 </td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getTeacherNames(s.group_id) }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getGroup(s.group_id)?.category ?? '—' }}</td>
-                <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">{{ getGroup(s.group_id)?.name ?? '—' }}</td>
+                <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">
+                  <GroupName v-if="s.group_id" :group="getGroup(s.group_id)" />
+                  <template v-else>—</template>
+                </td>
                 <td v-if="auth.isEditor" class="px-4 py-3">
                   <TableActionMenu :actions="studentActions(s)" />
                 </td>

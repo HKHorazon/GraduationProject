@@ -33,7 +33,9 @@ def create_teacher(
         raise HTTPException(status.HTTP_409_CONFLICT, "Teacher id already exists")
     teacher = Teacher(id=tid, name=body.name)
     db.add(teacher)
-    audit.record(db, actor, "create", "teacher", teacher.id, f"新增老師 {teacher.name}")
+    audit.event(db, actor, "teacher_create", f"新增老師 {teacher.name}",
+                teacher_id=teacher.id)
+    audit.dblog(db, actor, "create", "teachers", teacher.id, {"name": teacher.name})
     db.commit()
     db.refresh(teacher)
     return teacher
@@ -48,6 +50,7 @@ def delete_teacher(
     teacher = db.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Teacher not found")
-    audit.record(db, actor, "delete", "teacher", teacher.id, f"刪除老師 {teacher.name}")
+    # teacher removal is technical-only: db_logs, not the human timeline
+    audit.dblog(db, actor, "delete", "teachers", teacher.id, {"name": teacher.name})
     db.delete(teacher)
     db.commit()
