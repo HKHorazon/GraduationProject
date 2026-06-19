@@ -25,18 +25,24 @@
 
 ### 三個 Dockerfile/程式的關鍵慣例（缺了會在 Railway 起不來）
 
-1. **後端監聽 `$PORT` 且綁 IPv6 雙棧**，否則 private network 連不到：
+1. **後端監聽 `$PORT`，host 依「對外 / 內網」二選一**：
    ```dockerfile
-   CMD ["sh","-c","alembic upgrade head && uvicorn app.main:app --host :: --port ${PORT:-8000}"]
+   # 服務有 public domain（本專案前後端都對外）→ 綁 0.0.0.0
+   CMD ["sh","-c","alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
    ```
-   `--host ::`（雙棧）是重點；`0.0.0.0` 只有 IPv4，Railway 私網是 IPv6。
+   - ⚠️ **實測**：Railway 的 **public edge 是走 IPv4**，後端只綁 `--host ::` 時 public domain 會一直 **502（Application failed to respond）**。對外服務請用 `0.0.0.0`。
+   - `--host ::`（IPv6）只在「服務**不對外**、純靠 private network（`*.railway.internal` 是 IPv6）互連」時才需要；那種情況下前端 nginx 還得加 runtime resolver 才能解析內網域名（見第 2 點 ⚠️）。
+   - 本專案的選擇：兩個服務都各開 public domain，後端綁 `0.0.0.0`，前端 nginx 代理到**後端的 public https 域名**（最省事、免 private DNS）。
 2. **前端 nginx 用模板 + envsubst** 把 `PORT`/`BACKEND_URL` 注入設定檔：
    ```dockerfile
    COPY nginx.conf /etc/nginx/templates/default.conf.template
    ENV NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_URL)$"   # 別替換 nginx 自己的 $host/$uri
    ```
-   `nginx.conf` 內 `listen ${PORT};`、`proxy_pass ${BACKEND_URL};`，並加 `proxy_ssl_server_name on;`（BACKEND_URL 走 https 時要）。
-3. **前端打相對路徑** `/api/...`，由 nginx `location /api/` 代理到後端 → 同源、免 CORS。
+   `nginx.conf` 內 `listen ${PORT};`、`proxy_pass ${BACKEND_URL}/;`，並加 `proxy_ssl_server_name on;`（BACKEND_URL 走 https 時要）。
+   - ⚠️ **實測（很坑）**：代理到 Railway **public 域名**時，**不要**寫 `proxy_set_header Host $host;`。Railway edge 是**靠 Host header 路由**的，把 Host 設成前端自己的域名 → 請求會被 edge **繞回前端自己**（症狀：POST 一直回前端 nginx 的 405、後端完全收不到）。拿掉這行，讓 nginx 用 upstream 預設 host（`$proxy_host`）即可；原始 host 要留就用 `X-Forwarded-Host`。
+   - ⚠️ 若 `BACKEND_URL` 用 **private 內網域名**（`http://backend.railway.internal:8000`），nginx 開機會因解析不到而 `[emerg] host not found in upstream` 整個起不來。要嘛改用 public 域名（靜態 `proxy_pass`，本專案做法），要嘛在 `location` 內用 `resolver` + 變數 `proxy_pass` 做 request-time 解析。
+3. **前端打相對路徑** `/api/...`，由 nginx `location /api/` 代理到後端 → 瀏覽器同源、免 CORS。
+4. **DB 連線字串**：Railway Postgres plugin 給的是 `postgresql://…`（部分舊版甚至 `postgres://`）。若後端用 SQLAlchemy + psycopg3，需要 `postgresql+psycopg://…`——在讀設定時自動把 scheme 正規化，別要求手填正確 driver。
 
 ---
 
@@ -211,9 +217,12 @@ docker run -d --name frontend --network appnet -p 80:80 -e PORT=80 -e BACKEND_UR
 
 ## 6. 從零到上線 checklist
 
-- [ ] 後端 `CMD` 監聽 `$PORT` 且 `--host ::`
-- [ ] 前端 nginx 模板含 `listen ${PORT}` 與 `proxy_pass ${BACKEND_URL}`，filter 只替換自訂變數
+- [ ] 後端 `CMD` 監聽 `$PORT`；**對外服務綁 `0.0.0.0`**（綁 `::` 會讓 public domain 502），純內網才綁 `::`
+- [ ] 前端 nginx 模板含 `listen ${PORT}` 與 `proxy_pass ${BACKEND_URL}/`，filter 只替換自訂變數
+- [ ] 前端 `location /api/` **沒有** `proxy_set_header Host $host`（會被 Railway edge 依 Host 繞回前端自己 → 405）
+- [ ] `BACKEND_URL` 用 public 域名（靜態 `proxy_pass`）；若用 `*.railway.internal` 需加 `resolver` 做 runtime 解析，否則 nginx 開機 emerg
 - [ ] 前端只打相對路徑 `/api/...`
+- [ ] 後端讀 DB 字串時自動把 `postgres://`/`postgresql://` 正規化成 driver（如 `+psycopg`）
 - [ ] DB 用 Railway Postgres plugin（雲）或 compose `db`（本機）
 - [ ] 各 service 環境變數設好，跨 service 用 `${{Service.VAR}}` 或 `*.railway.internal`
 - [ ] 只有前端（必要時加 backend）`Generate Domain` 對外
