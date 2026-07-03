@@ -40,9 +40,10 @@ no build deploy — this only pushes source to the remote.
   git add -A
   git commit -m "<message>"
   ```
-- The commit message MUST end with:
+- The commit message MUST end with a Co-Authored-By line naming the model that
+  did the work (use your own model name), e.g.:
   ```
-  Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+  Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
   ```
 - Never use `--no-verify` or skip hooks. If a hook fails, fix the cause.
 

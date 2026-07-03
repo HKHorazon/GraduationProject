@@ -842,7 +842,18 @@ function resetF2() {
                 依左側表單內容即時更新；確認後依序執行，無法撤銷。
               </p>
 
-              <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              <p v-if="f1ExecError" class="text-sm text-red-500">{{ f1ExecError }}</p>
+
+              <button
+                @click="executeF1"
+                class="btn-primary w-full flex items-center justify-center gap-2"
+                :disabled="f1Executing || !previewOps.length"
+              >
+                <Loader2 v-if="f1Executing" class="w-4 h-4 animate-spin" />
+                {{ f1Executing ? '執行中…' : '確認執行' }}
+              </button>
+
+              <div class="grid grid-cols-1 gap-2">
                 <div
                   v-for="(op, i) in previewOps"
                   :key="i"
@@ -861,17 +872,6 @@ function resetF2() {
                   </div>
                 </div>
               </div>
-
-              <p v-if="f1ExecError" class="text-sm text-red-500">{{ f1ExecError }}</p>
-
-              <button
-                @click="executeF1"
-                class="btn-primary w-full flex items-center justify-center gap-2"
-                :disabled="f1Executing || !previewOps.length"
-              >
-                <Loader2 v-if="f1Executing" class="w-4 h-4 animate-spin" />
-                {{ f1Executing ? '執行中…' : '確認執行' }}
-              </button>
             </div>
           </div>
           </div>
@@ -1150,7 +1150,18 @@ function resetF2() {
                 依左側表單內容即時更新；確認後依序執行，無法撤銷。
               </p>
 
-              <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              <p v-if="f2ExecError" class="text-sm text-red-500">{{ f2ExecError }}</p>
+
+              <button
+                @click="executeF2"
+                class="btn-primary w-full flex items-center justify-center gap-2"
+                :disabled="f2Executing || !previewOps2.length"
+              >
+                <Loader2 v-if="f2Executing" class="w-4 h-4 animate-spin" />
+                {{ f2Executing ? '執行中…' : '確認執行' }}
+              </button>
+
+              <div class="grid grid-cols-1 gap-2">
                 <div
                   v-for="(op, i) in previewOps2"
                   :key="i"
@@ -1169,17 +1180,6 @@ function resetF2() {
                   </div>
                 </div>
               </div>
-
-              <p v-if="f2ExecError" class="text-sm text-red-500">{{ f2ExecError }}</p>
-
-              <button
-                @click="executeF2"
-                class="btn-primary w-full flex items-center justify-center gap-2"
-                :disabled="f2Executing || !previewOps2.length"
-              >
-                <Loader2 v-if="f2Executing" class="w-4 h-4 animate-spin" />
-                {{ f2Executing ? '執行中…' : '確認執行' }}
-              </button>
             </div>
           </div>
           </div>

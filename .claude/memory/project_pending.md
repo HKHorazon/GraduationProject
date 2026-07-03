@@ -15,8 +15,7 @@ metadata:
 
 用戶決定「以黑夜模式為主，但務必求個資訊清晰」。需完成：
 
-1. **theme store 預設暗模式** — `src/stores/theme.js`
-   - 把 `localStorage.getItem('theme') === 'dark'` 改成 `localStorage.getItem('theme') !== 'light'`（預設 dark）
+1. ~~**theme store 預設暗模式**~~ — ✅ 已完成（theme.js 已是 `!== 'light'`，預設 dark；下方「已知 Bug」隨之解除）
 
 2. **StudentsView.vue** — 改成 Dark Tech 風格
    - 表格、filter bar、badge 全部套用 Dark Tech tokens

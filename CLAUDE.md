@@ -116,6 +116,69 @@ Use **history mode** (`createWebHistory`). nginx has SPA fallback (`try_files ..
 - **Editor**: can create, update, delete records.
 - Enforced by a backend role-check dependency on write endpoints.
 
+## Coding Conventions (BINDING — every model working on this repo MUST follow these exactly)
+
+These rules exist so that any model (Fable / Opus / Sonnet) produces the same output.
+When in doubt, copy the pattern from the reference file named in each rule — do not invent a new pattern.
+Detailed templates live in two project skills: **backend-conventions** and **frontend-conventions**. Read the relevant one before writing code.
+
+### Language & Domain
+
+- **All UI-visible text is Traditional Chinese (zh-TW).** Code identifiers and most comments are English; short Chinese comments are fine where surrounding code already uses them.
+- Roles: `super_admin` > `editor` > `viewer` (strings on `Account.role`). Editor check = `deps.require_editor` (accepts super_admin too); account management = `require_super_admin`.
+- School years are ROC strings (`"113"`, `"114"`). Display always goes through `rocYear()` / `yearClass()` in `frontend/src/lib/year.js`.
+- Internal PKs are strings: students `s{n}`, groups `g{n}`, teachers `t{n}`, accounts `u{n}` (server auto-generates when omitted). `student_id` (學號, e.g. `A11001`) is the human-facing unique ID. A group's display label is `第{number}組`.
+- Page registry (sidebar label ↔ route ↔ permission key) lives in `frontend/src/stores/permissions.js` (`PAGES`): students 學生列表, groups 組別列表, remove-student 學生更動, group-change 組別異動, documents 文件輸入, documents-export 文件輸出, data 資料管理, audit-logs 異動紀錄; plus super_admin-only /accounts 帳號管理 and /permissions 權限設定.
+- Seed logins (password `password`): `admin` super_admin · `chen`/`lin` editor · `wang`/`huang` viewer. Browsing works logged-out (names masked).
+
+### Backend rules (reference files: `routers/students.py`, `routers/groups.py`)
+
+1. **Every mutating endpoint** takes `actor: Account = Depends(require_editor)` (or `require_super_admin`). Read endpoints take no auth.
+2. **Audit is two layers, both written before the single `db.commit()`** (helpers in `app/audit.py`):
+   - `audit.dblog(...)` — ALWAYS, for every create/update/delete/import, payload = changed fields with old/new values.
+   - `audit.event(...)` — ONLY for the semantic events whitelisted in `docs/異動紀錄種類.md` (group_create/rename/teachers/leader/category/delete, student_create/join/move/leave/status, teacher_create). group_id change is translated to join/move/leave; name/class fixes, number/school_year edits, account changes, and hard deletes go to db_logs only. A new event type must be added to that doc in the same change.
+3. One `db.commit()` at the end of the endpoint, `db.refresh()` before returning. SQLAlchemy 2.0 style (`select()`, `db.get`, `db.scalars`).
+4. PATCH uses `body.model_dump(exclude_unset=True)`; capture old values first; log only fields that actually changed.
+5. Status codes: POST 201, DELETE 204, missing 404, duplicate 409, bad input 400. Error `detail` that a user will see in a form is Traditional Chinese (e.g. `學號 X 已存在`); internal ones stay English (`Student not found`).
+6. Schemas follow the `Base / Create / Update / Out` pattern in `schemas.py` (`from_attributes=True` on Out). New routers register in `main.py` with prefix + tag.
+7. Schema change = Alembic migration in `alembic/versions/` AND `models.py` must stay `metadata.create_all`-able on SQLite for `dev_local.py` (see the `use_alter` note on `Group.leader_id`). Update `seed.py` when shapes change.
+
+### Frontend rules (reference files: `views/StudentsView.vue`, `stores/data.js`)
+
+1. HTTP only through the `api` singleton (`src/lib/api.js`). Domain data only through `useDataStore`; after a mutation, update the store array in place (push / replace-by-id / filter) — never refetch everything.
+2. A new page = 5 touchpoints, all required: view in `src/views/` (`<script setup>`, content wrapped in `<AppLayout>`) → lazy route in `router/index.js` → entry in `PAGES` + `DEFAULT_PERMISSIONS` (`stores/permissions.js`) → sidebar item in `AppSidebar.vue` gated by `perms.canAccess(key, auth.role)`.
+3. Write-UI is hidden with `auth.isEditor` / `auth.isSuperAdmin` — UX only; the backend check is the real guard.
+4. Student and group names render through the `StudentName` / `GroupName` components (they handle logged-out masking via `maskName` and editor click-through). Never print a raw student name directly.
+5. Icons: `lucide-vue-next` only. No new UI/component/CSS libraries.
+6. Styling: Tailwind + the shared component classes in `src/assets/main.css` (`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`). **Every screen must look correct in BOTH themes** — dark is the default (Dark Tech), light is warm parchment (`darkMode: 'class'`). Never build a screen for one theme only.
+
+   | Token | Dark (default) | Light (parchment) |
+   |---|---|---|
+   | page bg | `#0f1117` | `#ece3cf` |
+   | sidebar/section | `#161b27` | `#f7f1e1` |
+   | card | `#1e2535` (`dark-card`) | `#f7f1e1` |
+   | border | `#2a3347` (`dark-border`) | `#ddd0b3` |
+   | accent | `#00d4ff` cyan (`accent`) | `#00b3d8` / text `#0e7490` |
+   | fonts | `font-display` Space Grotesk · `font-sans` DM Sans/Noto Sans TC · `font-mono` Fira Code | same |
+
+   Table headers: `text-[10px] font-mono uppercase tracking-widest text-slate-500`. Badges: 已分組 cyan (`border-cyan-500/40 bg-cyan-400/10 text-cyan-400`), 未分組 slate, INACTIVE amber.
+
+### Definition of Done (run these BEFORE claiming a task complete or committing)
+
+- Frontend touched → `cd frontend && npm run build` must pass.
+- Backend touched → `backend/.venv/Scripts/python.exe -m compileall -q app` must pass, then restart uvicorn (**no `--reload` on Windows** — it hangs) and smoke-test the changed endpoint.
+- Full-stack verification: `/ship-local` starts backend (:8000, SQLite) + frontend (:5173).
+- UI checked in both dark and light themes; all visible text zh-TW.
+- No leftover `console.log`/debug prints; no secrets in the diff.
+- Commit/push only through the `/git-push` flow when the user asks.
+
+### Design docs (consult before touching the related area)
+
+- `docs/異動紀錄種類.md` — audit event whitelist + audit_logs/db_logs design (authoritative).
+- `docs/文件專區設計規劃.md` — documents 專區 form → preview → execute flow.
+- `docs/schema.md`, `docs/er-model.md` — DB schema reference.
+- `DEPLOY.md` — Railway/VPS deployment gotchas.
+
 ## Deployment (Docker on a VPS / self-hosted server)
 
 The same compose file runs everywhere — that's the point.
