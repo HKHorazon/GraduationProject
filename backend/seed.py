@@ -5,7 +5,7 @@ Run inside the backend container:  python seed.py
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import Account, Group, Student, Teacher
+from app.models import Account, Group, PagePermission, Student, Teacher
 from app.security import hash_password
 
 TEACHERS = [
@@ -73,10 +73,42 @@ ACCOUNTS = [
 
 DEFAULT_PASSWORD = "password"
 
+# page_key -> (viewer, editor); mirrors DEFAULT_PERMISSIONS in
+# frontend/src/stores/permissions.js. Read-only browse pages open to viewers;
+# everything else editor-only by default.
+PAGE_PERMISSIONS = [
+    ("students",         True,  True),
+    ("groups",           True,  True),
+    ("remove-student",   False, True),
+    ("group-change",     False, True),
+    ("documents",        False, True),
+    ("documents-export", False, True),
+    ("data",             False, True),
+    ("audit-logs",       False, True),
+]
+
+
+def seed_page_permissions(db) -> None:
+    """Insert default page permissions for any page_key not already present.
+
+    Idempotent: never overwrites existing rows, so a super_admin's saved
+    changes survive re-seeding. Runs even when the rest of the DB is seeded.
+    """
+    existing = set(db.scalars(select(PagePermission.page_key)).all())
+    added = 0
+    for page_key, viewer, editor in PAGE_PERMISSIONS:
+        if page_key not in existing:
+            db.add(PagePermission(page_key=page_key, viewer=viewer, editor=editor))
+            added += 1
+    if added:
+        db.commit()
+        print(f"Seeded {added} default page permission(s).")
+
 
 def seed() -> None:
     db = SessionLocal()
     try:
+        seed_page_permissions(db)
         if db.scalar(select(Teacher).limit(1)) is not None:
             print("Database already seeded — skipping.")
             return

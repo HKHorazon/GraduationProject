@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { api } from '@/lib/api'
 
 export const PAGES = [
   { key: 'students',        label: '學生列表',    route: '/students' },
@@ -13,9 +14,7 @@ export const PAGES = [
 ]
 
 // super_admin always has full access — not editable
-const STORAGE_KEY = 'page-permissions'
-
-const DEFAULT_PERMISSIONS = {
+export const DEFAULT_PERMISSIONS = {
   students:       { viewer: true,  editor: true  },
   groups:         { viewer: true,  editor: true  },
   'remove-student': { viewer: false, editor: true  },
@@ -26,21 +25,21 @@ const DEFAULT_PERMISSIONS = {
   'audit-logs':   { viewer: false, editor: true  },
 }
 
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    // merge over defaults so newly added pages get their default access
-    // even when an older permission set is already saved
-    if (raw) return { ...structuredClone(DEFAULT_PERMISSIONS), ...JSON.parse(raw) }
-  } catch {}
-  return null
-}
-
 export const usePermissionsStore = defineStore('permissions', () => {
-  const perms = ref(loadFromStorage() ?? structuredClone(DEFAULT_PERMISSIONS))
+  // The map lives in the backend (global + persistent). Start from defaults so
+  // the UI renders sensibly before load() resolves.
+  const perms = ref(structuredClone(DEFAULT_PERMISSIONS))
 
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(perms.value))
+  async function load() {
+    try {
+      const data = await api.get('/permissions')
+      // merge the server map OVER a fresh copy of the defaults, so any newly
+      // added page (not yet in the DB) falls back to its default access.
+      perms.value = { ...structuredClone(DEFAULT_PERMISSIONS), ...data }
+    } catch {
+      // never block the app on a failed load — fall back to defaults silently
+      perms.value = structuredClone(DEFAULT_PERMISSIONS)
+    }
   }
 
   function canAccess(pageKey, role) {
@@ -48,16 +47,27 @@ export const usePermissionsStore = defineStore('permissions', () => {
     return perms.value[pageKey]?.[role] ?? false
   }
 
-  function toggle(pageKey, role) {
+  async function toggle(pageKey, role) {
     if (role === 'super_admin') return
     perms.value[pageKey][role] = !perms.value[pageKey][role]
-    save()
+    try {
+      await api.put('/permissions', perms.value)
+    } catch (e) {
+      perms.value[pageKey][role] = !perms.value[pageKey][role] // revert on failure
+      throw new Error(e?.message || '權限設定儲存失敗')
+    }
   }
 
-  function reset() {
+  async function reset() {
+    const previous = structuredClone(perms.value)
     perms.value = structuredClone(DEFAULT_PERMISSIONS)
-    save()
+    try {
+      await api.put('/permissions', perms.value)
+    } catch (e) {
+      perms.value = previous // revert on failure
+      throw new Error(e?.message || '權限設定還原失敗')
+    }
   }
 
-  return { perms, canAccess, toggle, reset }
+  return { perms, load, canAccess, toggle, reset }
 })

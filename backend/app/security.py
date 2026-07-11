@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt
 
 from .config import settings
 
@@ -31,9 +31,11 @@ def create_access_token(subject: str, role: str) -> str:
 
 
 def decode_token(token: str) -> dict | None:
+    # PyJWT validates exp automatically and raises InvalidTokenError (the base of
+    # ExpiredSignatureError / InvalidSignatureError / DecodeError) on any problem.
     try:
         return jwt.decode(
             token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
         )
-    except JWTError:
+    except jwt.InvalidTokenError:
         return None

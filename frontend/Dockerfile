@@ -4,8 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# served at root by nginx, so override the GitHub Pages base path
-RUN npm run build -- --base=/
+RUN npm run build
 
 # --- serve stage ---
 FROM nginx:alpine

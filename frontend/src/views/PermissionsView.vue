@@ -9,17 +9,28 @@ const auth = useAuthStore()
 const perms = usePermissionsStore()
 
 const saved = ref(false)
+const error = ref('')
 
-function handleToggle(pageKey, role) {
-  perms.toggle(pageKey, role)
-  saved.value = true
-  setTimeout(() => { saved.value = false }, 1500)
+async function handleToggle(pageKey, role) {
+  error.value = ''
+  try {
+    await perms.toggle(pageKey, role)
+    saved.value = true
+    setTimeout(() => { saved.value = false }, 1500)
+  } catch (e) {
+    error.value = e?.message || '權限設定儲存失敗'
+  }
 }
 
-function handleReset() {
-  perms.reset()
-  saved.value = true
-  setTimeout(() => { saved.value = false }, 1500)
+async function handleReset() {
+  error.value = ''
+  try {
+    await perms.reset()
+    saved.value = true
+    setTimeout(() => { saved.value = false }, 1500)
+  } catch (e) {
+    error.value = e?.message || '權限設定還原失敗'
+  }
 }
 
 const ROLES = [
@@ -63,6 +74,10 @@ const ROLES = [
               <Check class="w-3.5 h-3.5" />已儲存
             </span>
           </Transition>
+
+          <!-- Save error -->
+          <span v-if="error"
+                class="text-xs text-red-600 dark:text-red-400">{{ error }}</span>
 
           <button
             @click="handleReset"

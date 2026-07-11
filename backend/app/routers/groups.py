@@ -23,6 +23,12 @@ def _to_out(group: Group) -> GroupOut:
     )
 
 
+def _next_num(db: Session) -> int:
+    ids = db.scalars(select(Group.id)).all()
+    nums = [int(i[1:]) for i in ids if i.startswith("g") and i[1:].isdigit()]
+    return (max(nums) + 1) if nums else 1
+
+
 def _load_teachers(db: Session, teacher_ids: list[str]) -> list[Teacher]:
     if not teacher_ids:
         return []
@@ -53,10 +59,13 @@ def create_group(
     db: Session = Depends(get_db),
     actor: Account = Depends(require_editor),
 ):
-    if db.get(Group, body.id):
+    gid = body.id
+    if not gid:
+        gid = f"g{_next_num(db)}"
+    elif db.get(Group, gid):
         raise HTTPException(status.HTTP_409_CONFLICT, "Group id already exists")
     group = Group(
-        id=body.id,
+        id=gid,
         number=body.number,
         name=body.name,
         category=body.category,
@@ -68,7 +77,7 @@ def create_group(
     audit.event(db, actor, "group_create",
                 f"建立 第{group.number}組「{group.name}」（{group.school_year}學年）",
                 group_id=group.id)
-    audit.dblog(db, actor, "create", "groups", group.id, body.model_dump())
+    audit.dblog(db, actor, "create", "groups", group.id, {**body.model_dump(), "id": gid})
     db.commit()
     db.refresh(group)
     return _to_out(group)

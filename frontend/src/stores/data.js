@@ -74,16 +74,8 @@ export const useDataStore = defineStore('data', () => {
     return updated
   }
 
-  // next free group id like g1, g2, ...
-  function nextGroupId() {
-    const nums = groups.value
-      .map((g) => parseInt(String(g.id).replace(/^g/, ''), 10))
-      .filter((n) => !Number.isNaN(n))
-    return `g${(nums.length ? Math.max(...nums) : 0) + 1}`
-  }
-
   async function createGroup(payload) {
-    const created = await api.post('/groups', { id: nextGroupId(), ...payload })
+    const created = await api.post('/groups', payload)
     groups.value.push(created)
     return created
   }

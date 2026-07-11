@@ -110,3 +110,17 @@ class DbLog(Base):
     table_name = Column(String, nullable=False)     # students | groups | teachers | accounts
     record_id = Column(String, nullable=True)
     payload = Column(String, nullable=True)         # JSON: changed fields / old & new values
+
+
+class PagePermission(Base):
+    """Global per-page/per-role page VISIBILITY map (managed on /permissions).
+
+    Moved off each browser's localStorage so a super_admin's changes apply to
+    everyone. Controls sidebar/page visibility ONLY — data writes stay guarded
+    server-side by require_editor.
+    """
+    __tablename__ = "page_permissions"
+
+    page_key = Column(String, primary_key=True)     # matches PAGES keys in the frontend
+    viewer = Column(Boolean, nullable=False)
+    editor = Column(Boolean, nullable=False)

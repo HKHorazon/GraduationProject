@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@db:5432/${POSTGRES_DB:-graduation}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-prod}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
     depends_on:
       db:

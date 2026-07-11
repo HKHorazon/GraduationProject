@@ -56,7 +56,7 @@ class GroupBase(BaseModel):
 
 
 class GroupCreate(GroupBase):
-    id: str
+    id: str | None = None  # auto-generated when omitted
 
 
 class GroupUpdate(BaseModel):
@@ -128,4 +128,12 @@ class AuditLogOut(BaseModel):
     student_id: str | None = None
     teacher_id: str | None = None
     group_id: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------- Page permissions ----------
+# The API payload shape is dict[str, PagePermission] keyed by page_key.
+class PagePermission(BaseModel):
+    viewer: bool
+    editor: bool
     model_config = ConfigDict(from_attributes=True)

@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import require_editor
+from ..deps import get_current_account_optional, require_editor
 from ..models import Account, Group, Student
+from ..privacy import mask_name
 from ..schemas import StudentCreate, StudentOut, StudentUpdate
 
 router = APIRouter()
@@ -50,11 +51,20 @@ def _next_num(db: Session) -> int:
 def list_students(
     school_year: str | None = None,
     db: Session = Depends(get_db),
+    account: Account | None = Depends(get_current_account_optional),
 ):
     stmt = select(Student)
     if school_year:
         stmt = stmt.where(Student.school_year == school_year)
-    return db.scalars(stmt).all()
+    students = db.scalars(stmt).all()
+    if account is not None:
+        return students
+    # 未登入：伺服器端遮蔽姓名個資。不可直接改動 ORM 物件（session flush 會把
+    # 遮蔽後的姓名寫回 DB）——改在 Pydantic 物件上覆寫 name。
+    return [
+        StudentOut.model_validate(s).model_copy(update={"name": mask_name(s.name)})
+        for s in students
+    ]
 
 
 @router.post("", response_model=StudentOut, status_code=status.HTTP_201_CREATED)
