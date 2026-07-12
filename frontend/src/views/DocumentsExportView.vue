@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { useDataStore } from '@/stores/data'
 import { useAuthStore } from '@/stores/auth'
 import { rocYear, classLetter } from '@/lib/year'
-import { FileText, Printer, ShieldOff, FileSearch, ClipboardList } from 'lucide-vue-next'
+import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine } from 'lucide-vue-next'
 
 const data = useDataStore()
 const auth = useAuthStore()
@@ -16,6 +16,7 @@ const activeDoc = ref('attendance') // 'attendance' | 'form1'
 const DOCS = [
   { key: 'attendance', icon: ClipboardList, label: '出席表',  sub: '附件・列印' },
   { key: 'form1',      icon: FileText,      label: '同意書',  sub: '附件一・列印' },
+  { key: 'attendance-year', icon: PenLine,  label: '出席記錄表', sub: '全學年・Word' },
 ]
 
 // ── Group selection ───────────────────────────────────────────────
@@ -82,6 +83,54 @@ const ATTENDANCE_ROWS = 10
 function print() {
   window.print()
 }
+
+// ── 出席記錄表（全學年）───────────────────────────────────────────
+const sheetYear = ref('')
+
+const yearGroups = computed(() =>
+  data.groups
+    .filter((g) => g.school_year === sheetYear.value)
+    .sort((a, b) => a.number - b.number)
+)
+
+// leader first, others by student_id
+function groupMembers(g) {
+  const members = data.students.filter((s) => s.group_id === g.id)
+  const l = members.find((s) => s.id === g.leader_id)
+  const rest = members
+    .filter((s) => s.id !== g.leader_id)
+    .sort((a, b) => String(a.student_id).localeCompare(String(b.student_id)))
+  return l ? [l, ...rest] : rest
+}
+
+function groupTeachers(g) {
+  return g.teacher_ids
+    .map((id) => data.teachers.find((t) => t.id === id)?.name)
+    .filter(Boolean)
+    .join('、')
+}
+
+const downloading = ref(false)
+
+async function downloadYearDocx() {
+  if (!sheetYear.value || !yearGroups.value.length || downloading.value) return
+  downloading.value = true
+  try {
+    const { downloadAttendanceYearDocx } = await import('@/lib/attendanceYearDoc')
+    await downloadAttendanceYearDocx({
+      yearLabel: rocYear(sheetYear.value),
+      groups: yearGroups.value.map((g) => ({
+        number: g.number,
+        name: g.name,
+        category: g.category,
+        teachers: groupTeachers(g),
+        members: groupMembers(g).map((s) => ({ student_id: s.student_id, name: s.name })),
+      })),
+    })
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <template>
@@ -125,25 +174,104 @@ function print() {
 
         <!-- toolbar (shared) -->
         <div class="flex items-center gap-3 flex-wrap mb-4 print:hidden">
-          <select v-model="filterYear" class="input !w-32 !py-1.5">
-            <option value="">全部學年</option>
-            <option v-for="y in years" :key="y" :value="y">{{ rocYear(y) }} 學年</option>
-          </select>
+          <template v-if="activeDoc !== 'attendance-year'">
+            <select v-model="filterYear" class="input !w-32 !py-1.5">
+              <option value="">全部學年</option>
+              <option v-for="y in years" :key="y" :value="y">{{ rocYear(y) }} 學年</option>
+            </select>
 
-          <select v-model="selectedGroupId" class="input !w-72 !py-1.5">
-            <option value="">— 選擇組別 —</option>
-            <option v-for="g in selectableGroups" :key="g.id" :value="g.id">
-              {{ rocYear(g.school_year) }} 學年・第 {{ g.number }} 組・{{ g.name }}
-            </option>
-          </select>
+            <select v-model="selectedGroupId" class="input !w-72 !py-1.5">
+              <option value="">— 選擇組別 —</option>
+              <option v-for="g in selectableGroups" :key="g.id" :value="g.id">
+                {{ rocYear(g.school_year) }} 學年・第 {{ g.number }} 組・{{ g.name }}
+              </option>
+            </select>
 
-          <button v-if="group" @click="print" class="btn-primary flex items-center gap-1.5 ml-auto">
-            <Printer class="w-4 h-4" /> 列印
-          </button>
+            <button v-if="group" @click="print" class="btn-primary flex items-center gap-1.5 ml-auto">
+              <Printer class="w-4 h-4" /> 列印
+            </button>
+          </template>
+
+          <template v-else>
+            <select v-model="sheetYear" class="input !w-40 !py-1.5">
+              <option value="">— 選擇學年 —</option>
+              <option v-for="y in years" :key="y" :value="y">{{ rocYear(y) }} 學年</option>
+            </select>
+
+            <button v-if="sheetYear && yearGroups.length" @click="downloadYearDocx"
+                    :disabled="downloading"
+                    class="btn-primary flex items-center gap-1.5 ml-auto disabled:opacity-60">
+              <FileDown class="w-4 h-4" /> {{ downloading ? '產生中…' : '下載 Word' }}
+            </button>
+          </template>
+        </div>
+
+        <!-- ─── 文件3：出席記錄表（全學年，預覽跟隨主題）────────── -->
+        <div v-if="activeDoc === 'attendance-year'" class="max-w-3xl">
+          <!-- empty states -->
+          <div v-if="!sheetYear"
+               class="flex flex-col items-center justify-center h-64 gap-3 text-center">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
+              <FileSearch class="w-6 h-6 text-slate-400" />
+            </div>
+            <p class="font-semibold text-slate-700 dark:text-slate-300">選擇學年以產生出席記錄表</p>
+            <p class="text-sm text-slate-400">將列出該學年所有組別，每位成員一個簽名格</p>
+          </div>
+          <div v-else-if="!yearGroups.length"
+               class="flex flex-col items-center justify-center h-64 gap-3 text-center">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
+              <FileSearch class="w-6 h-6 text-slate-400" />
+            </div>
+            <p class="font-semibold text-slate-700 dark:text-slate-300">此學年沒有任何組別</p>
+          </div>
+
+          <!-- preview -->
+          <div v-else class="space-y-5">
+            <div class="text-center">
+              <h2 class="text-lg font-bold font-display text-slate-800 dark:text-slate-100">
+                多媒體遊戲發展與應用系　專題製作出席記錄表
+              </h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+                {{ rocYear(sheetYear) }} 學年度　　日期：＿＿＿年＿＿月＿＿日
+              </p>
+            </div>
+
+            <div v-for="g in yearGroups" :key="g.id"
+                 class="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-xl overflow-hidden">
+              <div class="px-4 py-3 border-b border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-[#232b3d]">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  第 {{ g.number }} 組　專題題目：{{ g.name }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  指導老師：{{ groupTeachers(g) || '＿＿＿＿' }}<template v-if="g.category">　類別：{{ g.category }}</template>
+                </p>
+              </div>
+              <table class="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500 w-32">學號</th>
+                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500 w-32">姓名</th>
+                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500">簽名</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="m in groupMembers(g)" :key="m.id"
+                      class="border-t border-slate-100 dark:border-dark-border/60">
+                    <td class="px-4 py-2.5 id-mono text-slate-600 dark:text-slate-300">{{ m.student_id }}</td>
+                    <td class="px-4 py-2.5 text-slate-800 dark:text-slate-200">{{ m.name }}</td>
+                    <td class="px-4 py-2.5"><div class="h-8"></div></td>
+                  </tr>
+                  <tr v-if="!groupMembers(g).length">
+                    <td colspan="3" class="px-4 py-3 text-sm text-slate-400 text-center">（尚無成員）</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- empty state -->
-        <div v-if="!group"
+        <div v-else-if="!group"
              class="flex flex-col items-center justify-center h-64 gap-3 text-center">
           <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
             <FileSearch class="w-6 h-6 text-slate-400" />
