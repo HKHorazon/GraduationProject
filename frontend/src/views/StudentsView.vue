@@ -199,7 +199,7 @@ function studentActions(s) {
                 :key="s.id"
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
-                <td class="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
+                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
                 <td class="px-4 py-3 font-medium"
                     :class="s.status !== 'active' ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
