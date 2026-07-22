@@ -37,6 +37,7 @@ const filterYear = ref('')
 const filterTeacher = ref('')
 const filterCategory = ref('')
 const filterGrouped = ref('')
+const showInactive = ref(false)   // 休學/非在學人員預設隱藏
 
 const years = computed(() => [...new Set(data.students.map(s => s.school_year))].sort().reverse())
 const allTeachers = computed(() => data.teachers.map(t => t.name))
@@ -59,6 +60,7 @@ function toggleSort(col) {
 const filtered = computed(() => {
   let result = data.students.filter(s => {
     const g = getGroup(s.group_id)
+    if (!showInactive.value && s.status !== 'active') return false
     if (filterYear.value && s.school_year !== filterYear.value) return false
     if (filterTeacher.value) {
       const names = g?.teacher_ids.map(tid => data.teachers.find(t => t.id === tid)?.name) ?? []
@@ -90,6 +92,12 @@ const filtered = computed(() => {
     }
     if (av < bv) return sortDir.value === 'asc' ? -1 : 1
     if (av > bv) return sortDir.value === 'asc' ? 1 : -1
+    // tie-break: when sorting by 組別, leader comes first within the same group
+    if (sortCol.value === 'group' && a.group_id && a.group_id === b.group_id) {
+      const g = getGroup(a.group_id)
+      if (g?.leader_id === a.id) return -1
+      if (g?.leader_id === b.id) return 1
+    }
     return 0
   })
 
@@ -149,6 +157,12 @@ function studentActions(s) {
             <option value="grouped">已分組</option>
             <option value="ungrouped">未分組</option>
           </select>
+          <label class="flex items-center gap-1.5 px-2 text-xs cursor-pointer select-none
+                        text-slate-600 dark:text-slate-300">
+            <input type="checkbox" v-model="showInactive"
+                   class="accent-red-500 dark:accent-red-400 cursor-pointer" />
+            顯示休學人員
+          </label>
         </div>
       </div>
 
@@ -187,7 +201,14 @@ function studentActions(s) {
               >
                 <td class="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
-                <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100"><StudentName :student="s" /></td>
+                <td class="px-4 py-3 font-medium"
+                    :class="s.status !== 'active' ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
+                  <StudentName :student="s" />
+                  <span v-if="s.status !== 'active'"
+                        class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium
+                               border border-red-300 dark:border-red-700/50
+                               bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">休學</span>
+                </td>
                 <td class="px-4 py-3">
                   <span v-if="s.group_id" class="flex items-center gap-1">
                     <span

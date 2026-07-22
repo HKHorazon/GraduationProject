@@ -39,7 +39,12 @@ function toggleSort(col) {
 }
 
 function members(groupId) {
-  return data.students.filter(s => s.group_id === groupId)
+  const g = data.groups.find(x => x.id === groupId)
+  const leaderId = g?.leader_id
+  // leader first, rest keep their existing order
+  return data.students
+    .filter(s => s.group_id === groupId)
+    .sort((a, b) => (a.id === leaderId ? -1 : 0) - (b.id === leaderId ? -1 : 0))
 }
 
 function teacherNames(g) {
