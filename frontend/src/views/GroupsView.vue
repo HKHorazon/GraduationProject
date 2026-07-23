@@ -181,7 +181,7 @@ function groupActions(g) {
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
                 <td class="px-3 py-2.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{{ toRoc(g.school_year) }}</td>
-                <td class="px-3 py-2.5 id-mono text-xs whitespace-nowrap"><GroupName :group="g" :label="`第 ${g.number} 組`" /></td>
+                <td class="px-3 py-2.5 id-mono text-xs whitespace-nowrap"><GroupName :group="g" :label="`第 ${String(g.number).padStart(2, ' ')} 組`" /></td>
                 <td class="px-3 py-2.5 font-medium text-slate-800 dark:text-slate-100 text-sm"><GroupName :group="g" /></td>
                 <td class="px-3 py-2.5 whitespace-nowrap">
                   <span class="px-1.5 py-0.5 rounded text-xs

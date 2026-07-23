@@ -6,7 +6,7 @@ import SidebarGroup from './SidebarGroup.vue'
 import SidebarItem from './SidebarItem.vue'
 import {
   Search, Users, LayoutList, RefreshCw,
-  UserMinus, FolderCog, FileInput, FileOutput, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
+  UserMinus, FolderCog, ListOrdered, FileInput, FileOutput, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -48,11 +48,12 @@ function toggleCollapse() {
       </SidebarGroup>
 
       <SidebarGroup
-        v-if="perms.canAccess('remove-student', auth.role) || perms.canAccess('group-change', auth.role)"
+        v-if="perms.canAccess('remove-student', auth.role) || perms.canAccess('group-change', auth.role) || perms.canAccess('group-order', auth.role)"
         label="基本操作" :icon="RefreshCw" :collapsed="collapsed"
       >
         <SidebarItem v-if="perms.canAccess('remove-student', auth.role)" to="/changes/remove-student" label="學生更動" :icon="UserMinus" :collapsed="collapsed" />
         <SidebarItem v-if="perms.canAccess('group-change', auth.role)" to="/changes/group-change" label="組別異動" :icon="FolderCog" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canAccess('group-order', auth.role)" to="/groups/order" label="組別排序" :icon="ListOrdered" :collapsed="collapsed" />
       </SidebarGroup>
 
       <SidebarGroup

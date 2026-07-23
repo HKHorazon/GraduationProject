@@ -6,7 +6,7 @@ from .. import audit
 from ..db import get_db
 from ..deps import require_editor
 from ..models import Account, Group, Student, Teacher
-from ..schemas import GroupCreate, GroupOut, GroupUpdate
+from ..schemas import GroupCreate, GroupOut, GroupReorder, GroupUpdate
 
 router = APIRouter()
 
@@ -81,6 +81,36 @@ def create_group(
     db.commit()
     db.refresh(group)
     return _to_out(group)
+
+
+@router.post("/reorder", response_model=list[GroupOut])
+def reorder_groups(
+    body: GroupReorder,
+    db: Session = Depends(get_db),
+    actor: Account = Depends(require_editor),
+):
+    """Renumber a school year's groups to 1..N in the given order (drag-sort).
+
+    number edits are db_logs-only per docs/異動紀錄種類.md — no audit.event.
+    """
+    groups = db.scalars(
+        select(Group).where(Group.school_year == body.school_year)
+    ).all()
+    by_id = {g.id: g for g in groups}
+    if set(body.ordered_ids) != set(by_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "組別清單與該學年不一致")
+
+    changes: dict = {}
+    for i, gid in enumerate(body.ordered_ids, start=1):
+        g = by_id[gid]
+        if g.number != i:
+            changes[gid] = {"old": g.number, "new": i}
+            g.number = i
+    if changes:
+        audit.dblog(db, actor, "update", "groups", None,
+                    {"reorder": changes, "school_year": body.school_year})
+    db.commit()
+    return [_to_out(by_id[gid]) for gid in body.ordered_ids]
 
 
 @router.patch("/{group_id}", response_model=GroupOut)

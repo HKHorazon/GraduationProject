@@ -79,6 +79,11 @@ class GroupOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GroupReorder(BaseModel):
+    school_year: str
+    ordered_ids: list[str]  # group ids in the desired order; renumbered 1..N
+
+
 # ---------- Auth ----------
 class Token(BaseModel):
     access_token: str

@@ -288,7 +288,7 @@ async function doDisband() {
                 : 'border-slate-200 dark:border-[#2a3347] hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-[#1e2535]'"
             >
               <div class="flex items-center justify-between">
-                <span class="id-mono">第 {{ g.number }} 組</span>
+                <span class="id-mono">第 {{ String(g.number).padStart(2, ' ') }} 組</span>
                 <span class="text-[10px] text-slate-400">{{ rocYear(g.school_year) }} 學年</span>
               </div>
               <p class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate mt-0.5">{{ g.name }}</p>

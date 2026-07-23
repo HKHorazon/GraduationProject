@@ -80,6 +80,16 @@ export const useDataStore = defineStore('data', () => {
     return created
   }
 
+  async function reorderGroups(schoolYear, orderedIds) {
+    const updated = await api.post('/groups/reorder', {
+      school_year: schoolYear,
+      ordered_ids: orderedIds,
+    })
+    const byId = Object.fromEntries(updated.map((g) => [g.id, g]))
+    groups.value = groups.value.map((g) => byId[g.id] ?? g)
+    return updated
+  }
+
   async function deleteGroup(id) {
     await api.delete(`/groups/${id}`)
     groups.value = groups.value.filter((g) => g.id !== id)
@@ -105,6 +115,7 @@ export const useDataStore = defineStore('data', () => {
     deleteStudent,
     updateGroup,
     createGroup,
+    reorderGroups,
     deleteGroup,
   }
 })

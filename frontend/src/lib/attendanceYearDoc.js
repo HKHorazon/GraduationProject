@@ -8,6 +8,7 @@ import {
   HeightRule,
   Packer,
   Paragraph,
+  ShadingType,
   Table,
   TableCell,
   TableRow,
@@ -22,6 +23,9 @@ const TITLE = 32 // 16pt
 const BORDER = { style: BorderStyle.SINGLE, size: 4, color: '000000' }
 const BORDERS = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER }
 
+// docx omits w:val when only `fill` is given, but OOXML requires it → Word refuses the file.
+const shade = (fill) => ({ type: ShadingType.CLEAR, color: 'auto', fill })
+
 function run(text, opts = {}) {
   return new TextRun({ text, font: { name: FONT, eastAsia: FONT }, size: BODY, ...opts })
 }
@@ -33,7 +37,7 @@ function cell(children, opts = {}) {
 function headerCell(text, width) {
   return cell(
     [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(text, { bold: true })] })],
-    { width: { size: width, type: WidthType.PERCENTAGE }, shading: { fill: 'F2F2F2' } }
+    { width: { size: width, type: WidthType.PERCENTAGE }, shading: shade('F2F2F2') }
   )
 }
 
@@ -51,7 +55,7 @@ function groupTable(group) {
           meta.map((line, i) =>
             new Paragraph({ children: [run(line, { bold: i === 0 })] })
           ),
-          { columnSpan: 3, shading: { fill: 'E8E8E8' } }
+          { columnSpan: 3, shading: shade('E8E8E8') }
         ),
       ],
     }),

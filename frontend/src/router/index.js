@@ -4,6 +4,7 @@ const routes = [
   { path: '/', redirect: '/students' },
   { path: '/students', name: 'Students', component: () => import('@/views/StudentsView.vue') },
   { path: '/groups', name: 'Groups', component: () => import('@/views/GroupsView.vue') },
+  { path: '/groups/order', name: 'GroupOrder', component: () => import('@/views/GroupOrderView.vue') },
   { path: '/changes/remove-student', name: 'RemoveStudent', component: () => import('@/views/changes/RemoveStudentView.vue') },
   { path: '/changes/group-change', name: 'GroupChange', component: () => import('@/views/changes/GroupChangeView.vue') },
   { path: '/documents', name: 'Documents', component: () => import('@/views/DocumentsView.vue') },
