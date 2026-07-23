@@ -192,3 +192,9 @@ docker compose up -d --build
 
 Put a reverse proxy (the included nginx, or host-level Caddy/Traefik) in front for TLS.
 Moving to your own hardware later = clone repo + copy `.env` + restore `pg_dump` + `docker compose up`. No vendor lock-in.
+
+### Railway (current hosting) — deploy is CLI, not auto-on-push
+The Railway services are **not** wired to GitHub auto-deploy. `git push origin master` only
+syncs GitHub; the live site keeps serving the old build until you run `railway up`. `/ship`
+handles this: after the push it runs `railway up --service <changed svc> --ci` (from the
+service's subdirectory) and verifies the live bundle. See `DEPLOY.md` for the gotchas.

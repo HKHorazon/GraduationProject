@@ -93,7 +93,7 @@ railway up --service backend           # 從本機目前資料夾 build & 部署
 railway up --service frontend
 ```
 > `railway up` 會上傳當前目錄。多服務 monorepo 時，到各自子目錄執行，或在 service 設好 Root Directory 後從 repo 根 `up`。
-> 接 GitHub 後其實 push 即自動部署，CLI 的 `up` 主要用於手動/即時部署。
+> ⚠️ **本專案的 service 不是 GitHub 自動部署**（watchPatterns 空、歷來 deployment 都是 CLI 觸發）。`git push` 只同步 GitHub，**不會**部署——要上線一定要跑 `railway up --service <svc> --ci`。`--ci` 讓它 build 完成就結束、不會一直串流 log。
 
 ### 環境變數
 ```bash
