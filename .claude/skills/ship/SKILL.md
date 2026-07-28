@@ -51,7 +51,7 @@ Wait for `Deploy complete`.
 `railway up` builds from local files, so the live bundle's hash should match your
 `npm run build`. Confirm the change reached production (don't trust "Deploy complete" alone):
 ```bash
-BASE=https://frontend-production-7864.up.railway.app
+BASE=https://graduate-project.up.railway.app
 IDX=$(curl -s $BASE/ | grep -o 'assets/index-[^"]*\.js' | head -1)   # should equal your local dist entry hash
 curl -s "$BASE/$IDX" | grep -o 'YourView-[A-Za-z0-9_-]*\.js'         # then curl that chunk and grep for your change
 ```

@@ -4,7 +4,8 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { useDataStore } from '@/stores/data'
 import { useAuthStore } from '@/stores/auth'
 import { rocYear, classLetter } from '@/lib/year'
-import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, ChevronUp, ChevronDown } from 'lucide-vue-next'
+import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, GripVertical } from 'lucide-vue-next'
+import StudentName from '@/components/common/StudentName.vue'
 
 const data = useDataStore()
 const auth = useAuthStore()
@@ -91,35 +92,93 @@ const reviewDatetime = ref('')                   // 日期時間
 const reviewLocation = ref('')                   // 地點
 const reviewAudience = ref('日間部全體三年級學生') // 參加對象（可自訂）
 
-// export-only ordering — defaults to the saved 第X組 order, not persisted.
-const orderedGroups = ref([])
+// export-only ordering — 兩個分頁各自一份，不寫回資料庫
+const SIGNIN_TABS = [
+  { key: 'category', label: '依類型分組', hint: '拖類型標題可移動整個類型，拖組別可在同類型內調整順序' },
+  { key: 'custom',   label: '自由排序',   hint: '拖拉調整任意順序，僅套用於本次輸出' },
+]
+const signinTab = ref('category')
+const categoryOrder = ref([])
+const customOrder = ref([])
+const activeOrder = computed(() =>
+  signinTab.value === 'category' ? categoryOrder.value : customOrder.value
+)
+
 watch([sheetYear, () => data.groups], () => {
-  orderedGroups.value = data.groups
+  const list = data.groups
     .filter((g) => g.school_year === sheetYear.value)
     .sort((a, b) => a.number - b.number)
+  customOrder.value = list
+  // 同類別的組別相鄰排列（類別依第一次出現的順序），類別內維持第X組順序
+  const buckets = new Map()
+  list.forEach((g) => {
+    const key = g.category || ''
+    if (!buckets.has(key)) buckets.set(key, [])
+    buckets.get(key).push(g)
+  })
+  categoryOrder.value = [...buckets.values()].flat()
 }, { immediate: true })
 
-function moveGroup(i, dir) {
-  const j = i + dir
-  if (j < 0 || j >= orderedGroups.value.length) return
-  const arr = [...orderedGroups.value]
-  ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  orderedGroups.value = arr
+// --- native HTML5 drag & drop, live reorder（同 組別排序 頁）---
+const dragIndex = ref(-1)
+function onDragStart(i) { dragIndex.value = i }
+function onDragEnter(i) {
+  const from = dragIndex.value
+  if (from === -1 || from === i) return
+  const listRef = signinTab.value === 'category' ? categoryOrder : customOrder
+  // ponytail: 依類型分頁只允許同類型互換，類型區塊因此自動保持相鄰
+  if (signinTab.value === 'category' &&
+      (listRef.value[from].category || '') !== (listRef.value[i].category || '')) return
+  const arr = [...listRef.value]
+  const [moved] = arr.splice(from, 1)
+  arr.splice(i, 0, moved)
+  listRef.value = arr
+  dragIndex.value = i
+}
+function onDragEnd() { dragIndex.value = -1 }
+
+// --- 依類型分頁：整個類型區塊也能拖 ---
+// 類別是連續區塊且 key 唯一，所以用 category 字串當識別即可。
+function bucketRuns(list) {
+  const runs = []
+  list.forEach((g) => {
+    const key = g.category || ''
+    const last = runs[runs.length - 1]
+    if (last && last.key === key) last.items.push(g)
+    else runs.push({ key, items: [g] })
+  })
+  return runs
+}
+const dragCat = ref(null)
+function onCatDragStart(key) { dragCat.value = key; dragIndex.value = -1 }
+function onCatDragEnter(key) {
+  if (dragCat.value === null || dragCat.value === key) return
+  const runs = bucketRuns(categoryOrder.value)
+  const from = runs.findIndex((r) => r.key === dragCat.value)
+  const to = runs.findIndex((r) => r.key === key)
+  if (from < 0 || to < 0) return
+  const [moved] = runs.splice(from, 1)
+  runs.splice(to, 0, moved)
+  categoryOrder.value = runs.flatMap((r) => r.items)
+}
+function onCatDragEnd() { dragCat.value = null }
+
+function categoryCount(g) {
+  return categoryOrder.value.filter((x) => (x.category || '') === (g.category || '')).length
+}
+function isCategoryHead(i) {
+  return i === 0 || (activeOrder.value[i - 1].category || '') !== (activeOrder.value[i].category || '')
 }
 
-// 集合同類型：同類別的組別相鄰排列（類別依第一次出現的順序），類別內維持第X組順序
-const groupedByCategory = computed(() => {
-  const buckets = new Map()
-  data.groups
-    .filter((g) => g.school_year === sheetYear.value)
-    .sort((a, b) => a.number - b.number)
-    .forEach((g) => {
-      const key = g.category || ''
-      if (!buckets.has(key)) buckets.set(key, [])
-      buckets.get(key).push(g)
-    })
-  return [...buckets.values()].flat()
-})
+function teacherLabel(g) {
+  return g.teacher_ids
+    .map((id) => data.teachers.find((t) => t.id === id)?.name)
+    .filter(Boolean)
+    .join('、')
+}
+function leaderOf(g) {
+  return data.students.find((s) => s.id === g.leader_id) ?? null
+}
 
 // 112級→第三屆、113級→第四屆…（無第一、二屆）
 const CJK = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
@@ -283,7 +342,7 @@ async function downloadSignin(list, tag) {
             </div>
             <p class="font-semibold text-slate-700 dark:text-slate-300">選擇級以產生簽到表</p>
           </div>
-          <div v-else-if="!orderedGroups.length"
+          <div v-else-if="!activeOrder.length"
                class="flex flex-col items-center justify-center h-48 gap-3 text-center">
             <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
               <FileSearch class="w-6 h-6 text-slate-400" />
@@ -292,57 +351,88 @@ async function downloadSignin(list, tag) {
           </div>
 
           <template v-else>
-            <!-- 下載區 A：依類型分組 -->
             <div class="card p-4 space-y-3">
+              <!-- 子分頁 -->
               <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <p class="font-semibold text-slate-800 dark:text-slate-100">依類型分組</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">同類型組別自動集合相鄰，「組別」欄合併</p>
+                <div class="flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-[#232b3d]">
+                  <button
+                    v-for="t in SIGNIN_TABS"
+                    :key="t.key"
+                    @click="signinTab = t.key"
+                    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
+                    :class="signinTab === t.key
+                      ? 'bg-white dark:bg-[#1e2535] text-blue-700 dark:text-cyan-300 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+                  >{{ t.label }}</button>
                 </div>
-                <button @click="downloadSignin(groupedByCategory, '依類型')" :disabled="!!downloading"
+                <button @click="downloadSignin(activeOrder, signinTab === 'category' ? '依類型' : '自訂')"
+                        :disabled="!!downloading"
                         class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
-                  <FileDown class="w-4 h-4" /> {{ downloading === '依類型' ? '產生中…' : '下載 Word' }}
+                  <FileDown class="w-4 h-4" /> {{ downloading ? '產生中…' : '下載 Word' }}
                 </button>
               </div>
-              <ol class="space-y-1">
-                <li v-for="(g, i) in groupedByCategory" :key="g.id"
-                    class="flex items-center gap-2 text-sm px-2 py-1.5 rounded bg-slate-50 dark:bg-[#232b3d]">
-                  <span class="id-mono w-6 text-slate-400">{{ i + 1 }}</span>
-                  <span class="w-24 truncate text-slate-500 dark:text-slate-400">{{ g.category || '—' }}</span>
-                  <span class="flex-1 truncate text-slate-800 dark:text-slate-200">{{ g.name }}</span>
-                  <span class="text-xs text-slate-400">{{ groupMembers(g).length }} 人</span>
-                </li>
-              </ol>
-            </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ SIGNIN_TABS.find((t) => t.key === signinTab).hint }}
+              </p>
 
-            <!-- 下載區 B：自由調整順序 -->
-            <div class="card p-4 space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <p class="font-semibold text-slate-800 dark:text-slate-100">自由調整順序</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">用 ▲▼ 調整順序，僅套用於本次輸出</p>
-                </div>
-                <button @click="downloadSignin(orderedGroups, '自訂')" :disabled="!!downloading"
-                        class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
-                  <FileDown class="w-4 h-4" /> {{ downloading === '自訂' ? '產生中…' : '下載 Word' }}
-                </button>
-              </div>
+              <!-- 拖拉排序清單 -->
               <ol class="space-y-1">
-                <li v-for="(g, i) in orderedGroups" :key="g.id"
-                    class="flex items-center gap-2 text-sm px-2 py-1.5 rounded bg-slate-50 dark:bg-[#232b3d]">
-                  <span class="id-mono w-6 text-slate-400">{{ i + 1 }}</span>
-                  <span class="w-24 truncate text-slate-500 dark:text-slate-400">{{ g.category || '—' }}</span>
-                  <span class="flex-1 truncate text-slate-800 dark:text-slate-200">{{ g.name }}</span>
-                  <span class="text-xs text-slate-400">{{ groupMembers(g).length }} 人</span>
-                  <button @click="moveGroup(i, -1)" :disabled="i === 0"
-                          class="p-1 rounded text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-25 disabled:hover:bg-transparent">
-                    <ChevronUp class="w-4 h-4" />
-                  </button>
-                  <button @click="moveGroup(i, 1)" :disabled="i === orderedGroups.length - 1"
-                          class="p-1 rounded text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-25 disabled:hover:bg-transparent">
-                    <ChevronDown class="w-4 h-4" />
-                  </button>
-                </li>
+                <template v-for="(g, i) in activeOrder" :key="g.id">
+                  <!-- 類型標題列：拖它可移動整個大類型 -->
+                  <li
+                    v-if="signinTab === 'category' && isCategoryHead(i)"
+                    draggable="true"
+                    class="flex items-center gap-2 px-2 py-1 !mt-3 first:!mt-0 rounded select-none
+                           border-l-2 bg-slate-100 dark:bg-[#1a2131]
+                           cursor-grab active:cursor-grabbing"
+                    :class="dragCat === (g.category || '')
+                      ? 'border-blue-500 dark:border-cyan-400 ring-2 ring-blue-400 dark:ring-cyan-400'
+                      : 'border-blue-300 dark:border-cyan-700'"
+                    @dragstart="onCatDragStart(g.category || '')"
+                    @dragenter.prevent="onCatDragEnter(g.category || '')"
+                    @dragover.prevent
+                    @drop.prevent="onCatDragEnd"
+                    @dragend="onCatDragEnd"
+                  >
+                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      {{ g.category || '未分類' }}
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">{{ categoryCount(g) }} 組</span>
+                  </li>
+
+                  <li
+                    draggable="true"
+                    class="flex items-center gap-2 text-sm px-2 py-1.5 rounded select-none
+                           bg-slate-50 dark:bg-[#232b3d] cursor-grab active:cursor-grabbing"
+                    :class="[
+                      dragIndex === i ? 'ring-2 ring-blue-400 dark:ring-cyan-400 relative z-10' : '',
+                      signinTab === 'category' ? 'ml-4' : '',
+                    ]"
+                    @dragstart="onDragStart(i)"
+                    @dragenter.prevent="onDragEnter(i)"
+                    @dragover.prevent
+                    @drop.prevent="onDragEnd"
+                    @dragend="onDragEnd"
+                  >
+                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                    <span class="id-mono w-6 flex-shrink-0 text-slate-400">{{ i + 1 }}</span>
+                    <span v-if="signinTab !== 'category'"
+                          class="w-20 flex-shrink-0 truncate text-slate-500 dark:text-slate-400"
+                          :title="g.category || ''">{{ g.category || '—' }}</span>
+                    <span class="flex-1 min-w-0 truncate text-slate-800 dark:text-slate-200"
+                          :title="g.name">{{ g.name }}</span>
+                    <span class="w-28 flex-shrink-0 truncate text-xs text-slate-500 dark:text-slate-400"
+                          :title="teacherLabel(g) || '未指定指導老師'">{{ teacherLabel(g) || '—' }}</span>
+                    <span class="w-20 flex-shrink-0 truncate text-xs text-amber-600 dark:text-amber-400">
+                      <StudentName v-if="leaderOf(g)" :student="leaderOf(g)" />
+                      <template v-else>—</template>
+                    </span>
+                    <span class="w-10 flex-shrink-0 text-right text-xs text-slate-400">
+                      {{ groupMembers(g).length }} 人
+                    </span>
+                  </li>
+                </template>
               </ol>
             </div>
           </template>
