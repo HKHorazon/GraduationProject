@@ -56,26 +56,22 @@ function teacherNames(g) {
     .join('、')
 }
 
-// --- native HTML5 drag & drop ---
+// --- native HTML5 drag & drop, live reorder ---
+// The list rearranges as you drag over each card, so groups physically slot
+// into their new position (第 X 組 updates in real time) — no ghost/透明 effect.
 const dragIndex = ref(-1)
-const overIndex = ref(-1)
 
 function onDragStart(i) { dragIndex.value = i }
-function onDragEnter(i) { if (dragIndex.value !== -1) overIndex.value = i }
-function onDrop(i) {
-  if (dragIndex.value !== -1 && dragIndex.value !== i) {
-    const arr = [...localOrder.value]
-    const [moved] = arr.splice(dragIndex.value, 1)
-    arr.splice(i, 0, moved)
-    localOrder.value = arr
-  }
-  dragIndex.value = -1
-  overIndex.value = -1
+function onDragEnter(i) {
+  if (dragIndex.value === -1 || dragIndex.value === i) return
+  const arr = [...localOrder.value]
+  const [moved] = arr.splice(dragIndex.value, 1)
+  arr.splice(i, 0, moved)
+  localOrder.value = arr
+  dragIndex.value = i
 }
-function onDragEnd() {
-  dragIndex.value = -1
-  overIndex.value = -1
-}
+function onDrop() { dragIndex.value = -1 }
+function onDragEnd() { dragIndex.value = -1 }
 
 // --- save ---
 const saving = ref(false)
@@ -148,18 +144,17 @@ async function save() {
           v-for="(g, i) in localOrder"
           :key="g.id"
           :draggable="auth.isEditor"
-          class="card flex items-stretch gap-3 p-3 transition-all select-none"
+          class="card flex items-stretch gap-3 p-3 transition-shadow duration-100 select-none"
           :class="[
             auth.isEditor ? 'cursor-grab active:cursor-grabbing' : '',
-            dragIndex === i ? 'opacity-40' : '',
-            overIndex === i && dragIndex !== i
-              ? 'ring-2 ring-blue-400 dark:ring-cyan-400'
+            dragIndex === i
+              ? 'shadow-lg ring-2 ring-blue-400 dark:ring-cyan-400 relative z-10'
               : '',
           ]"
           @dragstart="onDragStart(i)"
           @dragenter.prevent="onDragEnter(i)"
           @dragover.prevent
-          @drop="onDrop(i)"
+          @drop.prevent="onDrop"
           @dragend="onDragEnd"
         >
           <!-- handle + position -->

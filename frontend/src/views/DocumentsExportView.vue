@@ -1,10 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useDataStore } from '@/stores/data'
 import { useAuthStore } from '@/stores/auth'
 import { rocYear, classLetter } from '@/lib/year'
-import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine } from 'lucide-vue-next'
+import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, ChevronUp, ChevronDown } from 'lucide-vue-next'
 
 const data = useDataStore()
 const auth = useAuthStore()
@@ -16,7 +16,7 @@ const activeDoc = ref('attendance') // 'attendance' | 'form1'
 const DOCS = [
   { key: 'attendance', icon: ClipboardList, label: '出席表',  sub: '附件・列印' },
   { key: 'form1',      icon: FileText,      label: '同意書',  sub: '附件一・列印' },
-  { key: 'attendance-year', icon: PenLine,  label: '出席記錄表', sub: '全學年・Word' },
+  { key: 'attendance-year', icon: PenLine,  label: '簽到表', sub: '書面審查・Word' },
 ]
 
 // ── Group selection ───────────────────────────────────────────────
@@ -84,13 +84,59 @@ function print() {
   window.print()
 }
 
-// ── 出席記錄表（全學年）───────────────────────────────────────────
-const sheetYear = ref('')
+// ── 簽到表（書面審查）─────────────────────────────────────────────
+const sheetYear = ref('')                       // 級（民國學年）
+const reviewTitle = ref('第三次專題書面審查')     // 審查名稱
+const reviewDatetime = ref('')                   // 日期時間
+const reviewLocation = ref('')                   // 地點
+const reviewAudience = ref('日間部全體三年級學生') // 參加對象（可自訂）
 
-const yearGroups = computed(() =>
+// export-only ordering — defaults to the saved 第X組 order, not persisted.
+const orderedGroups = ref([])
+watch([sheetYear, () => data.groups], () => {
+  orderedGroups.value = data.groups
+    .filter((g) => g.school_year === sheetYear.value)
+    .sort((a, b) => a.number - b.number)
+}, { immediate: true })
+
+function moveGroup(i, dir) {
+  const j = i + dir
+  if (j < 0 || j >= orderedGroups.value.length) return
+  const arr = [...orderedGroups.value]
+  ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  orderedGroups.value = arr
+}
+
+// 集合同類型：同類別的組別相鄰排列（類別依第一次出現的順序），類別內維持第X組順序
+const groupedByCategory = computed(() => {
+  const buckets = new Map()
   data.groups
     .filter((g) => g.school_year === sheetYear.value)
     .sort((a, b) => a.number - b.number)
+    .forEach((g) => {
+      const key = g.category || ''
+      if (!buckets.has(key)) buckets.set(key, [])
+      buckets.get(key).push(g)
+    })
+  return [...buckets.values()].flat()
+})
+
+// 112級→第三屆、113級→第四屆…（無第一、二屆）
+const CJK = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+function cjkNum(n) {
+  if (n < 10) return CJK[n]
+  if (n === 10) return '十'
+  if (n < 20) return '十' + CJK[n - 10]
+  const t = Math.floor(n / 10), o = n % 10
+  return CJK[t] + '十' + (o ? CJK[o] : '')
+}
+function cohortLabel(year) {
+  const roc = rocYear(year)
+  const n = Number(roc) - 109
+  return n >= 1 ? `第${cjkNum(n)}屆（${roc}級）` : `（${roc}級）`
+}
+const subtitle = computed(() =>
+  `${cohortLabel(sheetYear.value)} ${reviewTitle.value || ''} 專題組別簽到表`.trim()
 )
 
 // leader first, others by student_id
@@ -103,32 +149,33 @@ function groupMembers(g) {
   return l ? [l, ...rest] : rest
 }
 
-function groupTeachers(g) {
-  return g.teacher_ids
-    .map((id) => data.teachers.find((t) => t.id === id)?.name)
-    .filter(Boolean)
-    .join('、')
-}
+const downloading = ref('')
 
-const downloading = ref(false)
-
-async function downloadYearDocx() {
-  if (!sheetYear.value || !yearGroups.value.length || downloading.value) return
-  downloading.value = true
+async function downloadSignin(list, tag) {
+  if (!sheetYear.value || !list.length || downloading.value) return
+  downloading.value = tag
   try {
-    const { downloadAttendanceYearDocx } = await import('@/lib/attendanceYearDoc')
-    await downloadAttendanceYearDocx({
-      yearLabel: rocYear(sheetYear.value),
-      groups: yearGroups.value.map((g) => ({
-        number: g.number,
+    const { downloadReviewSigninDocx } = await import('@/lib/attendanceYearDoc')
+    await downloadReviewSigninDocx({
+      subtitle: subtitle.value,
+      datetime: reviewDatetime.value,
+      location: reviewLocation.value,
+      audience: reviewAudience.value,
+      fileBase: `${reviewTitle.value || '簽到表'}_${rocYear(sheetYear.value)}級_${tag}`,
+      groups: list.map((g, i) => ({
+        order: i + 1,
+        category: g.category || '',
         name: g.name,
-        category: g.category,
-        teachers: groupTeachers(g),
-        members: groupMembers(g).map((s) => ({ student_id: s.student_id, name: s.name })),
+        members: groupMembers(g).map((s) => ({
+          class_label: `日三${classLetter(s.class_)}`,
+          student_id: s.student_id,
+          name: s.name,
+          isLeader: s.id === g.leader_id,
+        })),
       })),
     })
   } finally {
-    downloading.value = false
+    downloading.value = ''
   }
 }
 </script>
@@ -172,9 +219,9 @@ async function downloadYearDocx() {
       <!-- ═══ RIGHT: content ═══ -->
       <div class="flex-1 min-w-0 overflow-y-auto">
 
-        <!-- toolbar (shared) -->
-        <div class="flex items-center gap-3 flex-wrap mb-4 print:hidden">
-          <template v-if="activeDoc !== 'attendance-year'">
+        <!-- toolbar (shared) — attendance-year keeps its config in its own panel -->
+        <div v-if="activeDoc !== 'attendance-year'" class="flex items-center gap-3 flex-wrap mb-4 print:hidden">
+          <template>
             <select v-model="filterYear" class="input !w-32 !py-1.5">
               <option value="">全部學年</option>
               <option v-for="y in years" :key="y" :value="y">{{ rocYear(y) }} 學年</option>
@@ -191,83 +238,114 @@ async function downloadYearDocx() {
               <Printer class="w-4 h-4" /> 列印
             </button>
           </template>
-
-          <template v-else>
-            <select v-model="sheetYear" class="input !w-40 !py-1.5">
-              <option value="">— 選擇學年 —</option>
-              <option v-for="y in years" :key="y" :value="y">{{ rocYear(y) }} 學年</option>
-            </select>
-
-            <button v-if="sheetYear && yearGroups.length" @click="downloadYearDocx"
-                    :disabled="downloading"
-                    class="btn-primary flex items-center gap-1.5 ml-auto disabled:opacity-60">
-              <FileDown class="w-4 h-4" /> {{ downloading ? '產生中…' : '下載 Word' }}
-            </button>
-          </template>
         </div>
 
-        <!-- ─── 文件3：出席記錄表（全學年，預覽跟隨主題）────────── -->
-        <div v-if="activeDoc === 'attendance-year'" class="max-w-3xl">
+        <!-- ─── 文件3：專題組別簽到表（書面審查・Word）────────── -->
+        <div v-if="activeDoc === 'attendance-year'" class="max-w-3xl space-y-5">
+
+          <!-- config -->
+          <div class="card p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="label">級</label>
+                <select v-model="sheetYear" class="input">
+                  <option value="">— 選擇級 —</option>
+                  <option v-for="y in years" :key="y" :value="y">{{ cohortLabel(y) }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">審查名稱</label>
+                <input v-model="reviewTitle" class="input" placeholder="第三次專題書面審查" />
+              </div>
+              <div>
+                <label class="label">日期時間</label>
+                <input v-model="reviewDatetime" class="input" placeholder="115年06月18日（星期四）13:00-17:00" />
+              </div>
+              <div>
+                <label class="label">地點</label>
+                <input v-model="reviewLocation" class="input" placeholder="MB106會議廳" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="label">參加對象</label>
+                <input v-model="reviewAudience" class="input" placeholder="日間部全體三年級學生" />
+              </div>
+            </div>
+            <p v-if="sheetYear" class="text-center text-sm font-semibold text-slate-700 dark:text-slate-200 pt-1">
+              {{ subtitle }}
+            </p>
+          </div>
+
           <!-- empty states -->
           <div v-if="!sheetYear"
-               class="flex flex-col items-center justify-center h-64 gap-3 text-center">
+               class="flex flex-col items-center justify-center h-48 gap-3 text-center">
             <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
               <FileSearch class="w-6 h-6 text-slate-400" />
             </div>
-            <p class="font-semibold text-slate-700 dark:text-slate-300">選擇學年以產生出席記錄表</p>
-            <p class="text-sm text-slate-400">將列出該學年所有組別，每位成員一個簽名格</p>
+            <p class="font-semibold text-slate-700 dark:text-slate-300">選擇級以產生簽到表</p>
           </div>
-          <div v-else-if="!yearGroups.length"
-               class="flex flex-col items-center justify-center h-64 gap-3 text-center">
+          <div v-else-if="!orderedGroups.length"
+               class="flex flex-col items-center justify-center h-48 gap-3 text-center">
             <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
               <FileSearch class="w-6 h-6 text-slate-400" />
             </div>
-            <p class="font-semibold text-slate-700 dark:text-slate-300">此學年沒有任何組別</p>
+            <p class="font-semibold text-slate-700 dark:text-slate-300">此級沒有任何組別</p>
           </div>
 
-          <!-- preview -->
-          <div v-else class="space-y-5">
-            <div class="text-center">
-              <h2 class="text-lg font-bold font-display text-slate-800 dark:text-slate-100">
-                多媒體遊戲發展與應用系　專題製作出席記錄表
-              </h2>
-              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-                {{ rocYear(sheetYear) }} 學年度　　日期：＿＿＿年＿＿月＿＿日
-              </p>
-            </div>
-
-            <div v-for="g in yearGroups" :key="g.id"
-                 class="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-xl overflow-hidden">
-              <div class="px-4 py-3 border-b border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-[#232b3d]">
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  第 {{ g.number }} 組　專題題目：{{ g.name }}
-                </p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  指導老師：{{ groupTeachers(g) || '＿＿＿＿' }}<template v-if="g.category">　類別：{{ g.category }}</template>
-                </p>
+          <template v-else>
+            <!-- 下載區 A：依類型分組 -->
+            <div class="card p-4 space-y-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p class="font-semibold text-slate-800 dark:text-slate-100">依類型分組</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">同類型組別自動集合相鄰，「組別」欄合併</p>
+                </div>
+                <button @click="downloadSignin(groupedByCategory, '依類型')" :disabled="!!downloading"
+                        class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
+                  <FileDown class="w-4 h-4" /> {{ downloading === '依類型' ? '產生中…' : '下載 Word' }}
+                </button>
               </div>
-              <table class="w-full text-sm">
-                <thead>
-                  <tr>
-                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500 w-32">學號</th>
-                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500 w-32">姓名</th>
-                    <th class="px-4 py-2 text-left text-[10px] font-mono tracking-widest text-slate-500">簽名</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="m in groupMembers(g)" :key="m.id"
-                      class="border-t border-slate-100 dark:border-dark-border/60">
-                    <td class="px-4 py-2.5 id-mono text-slate-600 dark:text-slate-300">{{ m.student_id }}</td>
-                    <td class="px-4 py-2.5 text-slate-800 dark:text-slate-200">{{ m.name }}</td>
-                    <td class="px-4 py-2.5"><div class="h-8"></div></td>
-                  </tr>
-                  <tr v-if="!groupMembers(g).length">
-                    <td colspan="3" class="px-4 py-3 text-sm text-slate-400 text-center">（尚無成員）</td>
-                  </tr>
-                </tbody>
-              </table>
+              <ol class="space-y-1">
+                <li v-for="(g, i) in groupedByCategory" :key="g.id"
+                    class="flex items-center gap-2 text-sm px-2 py-1.5 rounded bg-slate-50 dark:bg-[#232b3d]">
+                  <span class="id-mono w-6 text-slate-400">{{ i + 1 }}</span>
+                  <span class="w-24 truncate text-slate-500 dark:text-slate-400">{{ g.category || '—' }}</span>
+                  <span class="flex-1 truncate text-slate-800 dark:text-slate-200">{{ g.name }}</span>
+                  <span class="text-xs text-slate-400">{{ groupMembers(g).length }} 人</span>
+                </li>
+              </ol>
             </div>
-          </div>
+
+            <!-- 下載區 B：自由調整順序 -->
+            <div class="card p-4 space-y-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p class="font-semibold text-slate-800 dark:text-slate-100">自由調整順序</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">用 ▲▼ 調整順序，僅套用於本次輸出</p>
+                </div>
+                <button @click="downloadSignin(orderedGroups, '自訂')" :disabled="!!downloading"
+                        class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
+                  <FileDown class="w-4 h-4" /> {{ downloading === '自訂' ? '產生中…' : '下載 Word' }}
+                </button>
+              </div>
+              <ol class="space-y-1">
+                <li v-for="(g, i) in orderedGroups" :key="g.id"
+                    class="flex items-center gap-2 text-sm px-2 py-1.5 rounded bg-slate-50 dark:bg-[#232b3d]">
+                  <span class="id-mono w-6 text-slate-400">{{ i + 1 }}</span>
+                  <span class="w-24 truncate text-slate-500 dark:text-slate-400">{{ g.category || '—' }}</span>
+                  <span class="flex-1 truncate text-slate-800 dark:text-slate-200">{{ g.name }}</span>
+                  <span class="text-xs text-slate-400">{{ groupMembers(g).length }} 人</span>
+                  <button @click="moveGroup(i, -1)" :disabled="i === 0"
+                          class="p-1 rounded text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-25 disabled:hover:bg-transparent">
+                    <ChevronUp class="w-4 h-4" />
+                  </button>
+                  <button @click="moveGroup(i, 1)" :disabled="i === orderedGroups.length - 1"
+                          class="p-1 rounded text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-[#2a3347] disabled:opacity-25 disabled:hover:bg-transparent">
+                    <ChevronDown class="w-4 h-4" />
+                  </button>
+                </li>
+              </ol>
+            </div>
+          </template>
         </div>
 
         <!-- empty state -->

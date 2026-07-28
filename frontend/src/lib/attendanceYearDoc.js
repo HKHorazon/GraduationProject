@@ -1,6 +1,6 @@
-// 專題製作出席記錄表（全學年）Word 產生器。
-// 由 DocumentsExportView 以動態 import 載入，docx 套件因此獨立成 async chunk，
-// 不會拖慢頁面本身的載入。Word 成品固定黑字白底（紙本），與畫面主題無關。
+// 專題組別簽到表（書面審查）Word 產生器 — 版型比照
+// docs/第三次專題書面審查各組簽到表.docx：一張大表，組別/順序/專題名稱直向合併，
+// 上方有 日期時間 / 地點 / 參加對象 三列表頭。成品固定黑字白底（紙本），與畫面主題無關。
 import {
   AlignmentType,
   BorderStyle,
@@ -13,11 +13,12 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  VerticalMergeType,
   WidthType,
 } from 'docx'
 
 const FONT = 'Microsoft JhengHei'
-const BODY = 24 // half-points = 12pt（不縮小字）
+const BODY = 24 // 12pt
 const TITLE = 32 // 16pt
 
 const BORDER = { style: BorderStyle.SINGLE, size: 4, color: '000000' }
@@ -30,85 +31,118 @@ function run(text, opts = {}) {
   return new TextRun({ text, font: { name: FONT, eastAsia: FONT }, size: BODY, ...opts })
 }
 
-function cell(children, opts = {}) {
-  return new TableCell({ borders: BORDERS, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children, ...opts })
+function para(text, opts = {}) {
+  return new Paragraph({ children: [run(text, opts.run)], ...opts.para })
 }
 
-function headerCell(text, width) {
+function cell(children, opts = {}) {
+  return new TableCell({
+    borders: BORDERS,
+    margins: { top: 60, bottom: 60, left: 100, right: 100 },
+    children,
+    ...opts,
+  })
+}
+
+// vertical-merge helper: 'restart' shows text, 'continue' is an empty spanned cell.
+function mergeCell(text, merge, width, opts = {}) {
+  if (merge === 'continue') {
+    return cell([new Paragraph('')], { verticalMerge: VerticalMergeType.CONTINUE, width, ...opts })
+  }
   return cell(
-    [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(text, { bold: true })] })],
-    { width: { size: width, type: WidthType.PERCENTAGE }, shading: shade('F2F2F2') }
+    [new Paragraph({ alignment: opts.align ?? AlignmentType.CENTER, children: [run(text)] })],
+    { verticalMerge: VerticalMergeType.RESTART, width, ...opts }
   )
 }
 
-// group: { number, name, category, teachers, members: [{ student_id, name }] }
-function groupTable(group) {
-  const meta = [
-    `第 ${group.number} 組　專題題目：${group.name}`,
-    `指導老師：${group.teachers || '＿＿＿＿'}${group.category ? `　類別：${group.category}` : ''}`,
-  ]
-  const rows = [
+const W = (size) => ({ size, type: WidthType.PERCENTAGE })
+
+function headerCell(text) {
+  return cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(text, { bold: true })] })], {
+    shading: shade('F2F2F2'),
+  })
+}
+
+function metaRow(label, value) {
+  return new TableRow({
+    cantSplit: true,
+    children: [
+      cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(label, { bold: true })] })], {
+        columnSpan: 3,
+        shading: shade('F2F2F2'),
+      }),
+      cell([new Paragraph({ children: [run(value)] })], { columnSpan: 4 }),
+    ],
+  })
+}
+
+// data: { subtitle, datetime, location, audience, groups: [{ order, category, name,
+//   members: [{ class_label, student_id, name, isLeader }] }] }
+export function buildReviewSigninDoc(data) {
+  const rows = []
+
+  // title (spans all 7 columns)
+  rows.push(
     new TableRow({
       cantSplit: true,
       children: [
         cell(
-          meta.map((line, i) =>
-            new Paragraph({ children: [run(line, { bold: i === 0 })] })
-          ),
-          { columnSpan: 3, shading: shade('E8E8E8') }
+          [
+            new Paragraph({ alignment: AlignmentType.CENTER, children: [run('弘光科技大學　多媒體遊戲發展與應用系', { bold: true, size: TITLE })] }),
+            new Paragraph({ alignment: AlignmentType.CENTER, children: [run(data.subtitle, { bold: true, size: TITLE })] }),
+          ],
+          { columnSpan: 7 }
         ),
       ],
-    }),
+    })
+  )
+
+  rows.push(metaRow('日期時間', data.datetime))
+  rows.push(metaRow('地　　點', data.location))
+  rows.push(metaRow('參加對象', data.audience))
+
+  // column header
+  rows.push(
     new TableRow({
       cantSplit: true,
-      children: [headerCell('學號', 22), headerCell('姓名', 22), headerCell('簽名', 56)],
-    }),
-    ...group.members.map((m) =>
-      new TableRow({
-        cantSplit: true,
-        height: { value: 680, rule: HeightRule.ATLEAST }, // 簽名格高度約 1.2cm
-        children: [
-          cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(m.student_id)] })], {
-            width: { size: 22, type: WidthType.PERCENTAGE },
-          }),
-          cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(m.name)] })], {
-            width: { size: 22, type: WidthType.PERCENTAGE },
-          }),
-          cell([new Paragraph('')], { width: { size: 56, type: WidthType.PERCENTAGE } }),
-        ],
-      })
-    ),
-  ]
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows })
-}
+      children: ['組別', '順序', '專題名稱', '班級', '學號', '姓名', '簽名'].map(headerCell),
+    })
+  )
 
-// data: { yearLabel, groups: [...] }（yearLabel 為民國學年字串，如 "113"）
-export function buildAttendanceYearDoc(data) {
-  const children = [
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [run('多媒體遊戲發展與應用系　專題製作出席記錄表', { bold: true, size: TITLE })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 160, after: 320 },
-      children: [run(`${data.yearLabel} 學年度　　日期：＿＿＿年＿＿月＿＿日`)],
-    }),
-  ]
-  data.groups.forEach((g, i) => {
-    children.push(groupTable(g))
-    if (i < data.groups.length - 1) children.push(new Paragraph({ spacing: { after: 240 }, text: '' }))
+  // student rows with vertical merges on 組別 / 順序 / 專題名稱
+  let prevCat = null
+  data.groups.forEach((g) => {
+    const catRestart = !g.category || g.category !== prevCat
+    prevCat = g.category
+    g.members.forEach((m, mi) => {
+      rows.push(
+        new TableRow({
+          cantSplit: true,
+          height: { value: 560, rule: HeightRule.ATLEAST },
+          children: [
+            mergeCell(g.category || '', mi === 0 && catRestart ? 'restart' : 'continue', W(10)),
+            mergeCell(String(g.order), mi === 0 ? 'restart' : 'continue', W(6)),
+            mergeCell(g.name, mi === 0 ? 'restart' : 'continue', W(24), { align: AlignmentType.LEFT }),
+            cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(m.class_label)] })], { width: W(10) }),
+            cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(m.student_id)] })], { width: W(14) }),
+            cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(m.isLeader ? `${m.name}（組長）` : m.name)] })], { width: W(14) }),
+            cell([new Paragraph('')], { width: W(22) }),
+          ],
+        })
+      )
+    })
   })
 
-  return new Document({ sections: [{ children }] })
+  const table = new Table({ width: W(100), rows })
+  return new Document({ sections: [{ children: [table] }] })
 }
 
-export async function downloadAttendanceYearDocx(data) {
-  const blob = await Packer.toBlob(buildAttendanceYearDoc(data))
+export async function downloadReviewSigninDocx(data) {
+  const blob = await Packer.toBlob(buildReviewSigninDoc(data))
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `專題製作出席記錄表_${data.yearLabel}學年.docx`
+  a.download = `${data.fileBase}.docx`
   a.click()
   URL.revokeObjectURL(url)
 }
