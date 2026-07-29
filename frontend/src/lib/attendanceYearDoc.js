@@ -123,14 +123,11 @@ export function buildReviewSigninDoc(data) {
     })
   )
 
-  // 學生列：組別／順序／專題名稱 直向合併
-  let prevCat = null
+  // 學生列：組別／順序／專題名稱 只在「同一組的組員之間」合併，組與組一律切開，
+  // 這樣每一組的上緣都有一條線，不會出現跨組的大空格。
   data.groups.forEach((g) => {
-    if (!g.members.length) return // 空組別不出列，也不能影響類別合併
-    const catRestart = !g.category || g.category !== prevCat
-    prevCat = g.category
+    if (!g.members.length) return // 空組別不出列
     g.members.forEach((m, mi) => {
-      const catStart = mi === 0 && catRestart
       const top = mi === 0 ? TOP_THICK : {} // 每組第一列補粗線，取代合併格畫不出來的組內橫線
       rows.push(
         new TableRow({
@@ -139,10 +136,9 @@ export function buildReviewSigninDoc(data) {
           children: [
             // 組別欄直書（同範例）。docx 的 TextDirection 沒有 'tbRlV'（中文直書、字不轉向），
             // 它只有會把字轉 90° 的 'tbRl'，所以直接給 OOXML 值。
-            // 粗線只加在類別換人時，同類別的組別欄才會維持一整塊。
-            mergeCell(g.category || '', catStart ? 'restart' : 'continue', 0, {
+            mergeCell(g.category || '', mi === 0 ? 'restart' : 'continue', 0, {
               textDirection: 'tbRlV',
-              ...(catStart ? TOP_THICK : {}),
+              ...top,
             }),
             mergeCell(String(g.order), mi === 0 ? 'restart' : 'continue', 1, top),
             mergeCell(g.name, mi === 0 ? 'restart' : 'continue', 2, top),

@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { useDataStore } from '@/stores/data'
 import { useAuthStore } from '@/stores/auth'
 import { rocYear, classLetter } from '@/lib/year'
-import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, GripVertical, ListOrdered, Shuffle } from 'lucide-vue-next'
+import { Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, GripVertical, ListOrdered, Shuffle } from 'lucide-vue-next'
 import StudentName from '@/components/common/StudentName.vue'
 
 const data = useDataStore()
@@ -16,7 +16,6 @@ const activeDoc = ref('attendance')
 
 const DOCS = [
   { key: 'attendance',  icon: ClipboardList, label: '出席表',      sub: '附件・列印' },
-  { key: 'form1',       icon: FileText,      label: '同意書',      sub: '附件一・列印' },
   { key: 'signin-cat',  icon: PenLine,       label: '簽到表・分類', sub: '依類型分組・Word' },
   { key: 'signin-free', icon: ListOrdered,   label: '簽到表・自訂', sub: '自由排序・Word' },
 ]
@@ -56,13 +55,6 @@ const allMembers = computed(() => {
     (s) => s.group_id === group.value.id && s.id !== group.value.leader_id
   )
   return l ? [l, ...rest] : rest
-})
-
-// for 同意書: 4 blank member rows (excluding leader)
-const memberRows = computed(() => {
-  const rows = allMembers.value.filter((s) => s.id !== group.value?.leader_id)
-  while (rows.length < 4) rows.push(null)
-  return rows
 })
 
 const teacherNames = computed(() =>
@@ -530,83 +522,12 @@ async function downloadSignin(list, tag) {
           </div>
         </div>
 
-        <!-- ─── 文件2：同意書 ──────────────────────────────────── -->
-        <div v-else-if="activeDoc === 'form1'" id="print-area" class="max-w-2xl">
-          <div class="bg-white text-black border border-slate-300 rounded-xl print:border-0 print:rounded-none overflow-hidden shadow-sm print:shadow-none">
-
-            <!-- header -->
-            <div class="text-center py-5 px-6">
-              <p class="text-[10px] font-mono text-slate-500 mb-1">
-                附件一　FM-20430-008　表單修訂日期：114.08.21　保存期限：三年
-              </p>
-              <h2 class="text-lg font-bold">
-                多媒體遊戲發展與應用系實務專題指導老師同意書
-              </h2>
-            </div>
-
-            <!-- form table -->
-            <table class="w-full text-sm paper-table">
-              <tbody>
-                <tr>
-                  <td class="p-label">班　　級</td>
-                  <td class="p-body" colspan="3">
-                    {{ rocYear(group.school_year) }} 年　{{ classDisplay || '＿＿' }} 班　第 {{ group.number }} 組
-                  </td>
-                </tr>
-                <tr>
-                  <td class="p-label">指導老師姓名</td>
-                  <td class="p-body" colspan="3">{{ teacherNames || '＿＿＿＿＿＿' }}</td>
-                </tr>
-                <tr>
-                  <td class="p-label">組　　長</td>
-                  <td class="p-body w-40">學號：{{ leader?.student_id ?? '' }}</td>
-                  <td class="p-body w-32">姓名：{{ leader?.name ?? '' }}</td>
-                  <td class="p-body">聯絡電話：</td>
-                </tr>
-                <tr v-for="(m, i) in memberRows" :key="i">
-                  <td class="p-label">{{ i === 0 ? '組　　員' : '' }}</td>
-                  <td class="p-body">學號：{{ m?.student_id ?? '' }}</td>
-                  <td class="p-body">姓名：{{ m?.name ?? '' }}</td>
-                  <td class="p-body">聯絡電話：</td>
-                </tr>
-                <tr>
-                  <td class="p-label">專題題目</td>
-                  <td class="p-body" colspan="3">{{ group.name }}</td>
-                </tr>
-                <tr>
-                  <td class="p-label">類　　別</td>
-                  <td class="p-body" colspan="3">{{ group.category ?? '' }}</td>
-                </tr>
-                <tr>
-                  <td class="p-label">備　　註</td>
-                  <td class="p-body h-16 align-top" colspan="3"></td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="px-6 py-8 flex items-end justify-between text-sm">
-              <p>指導老師簽名：＿＿＿＿＿＿＿＿＿＿</p>
-              <p>日期：＿＿＿＿＿＿＿＿＿＿</p>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   </AppLayout>
 </template>
 
 <style scoped>
-/* ── 同意書 ─── */
-.paper-table { border-collapse: collapse; }
-.p-label {
-  @apply px-4 py-2.5 text-sm font-medium whitespace-nowrap align-middle text-center
-         bg-slate-50 border border-slate-400 w-28;
-}
-.p-body {
-  @apply px-4 py-2.5 align-middle border border-slate-400;
-}
-
 /* ── 出席表 ─── */
 .a-th {
   @apply px-2 py-2 text-xs font-semibold text-center align-middle
