@@ -55,7 +55,12 @@ function mergeCell(text, merge, width, opts = {}) {
   )
 }
 
-const W = (size) => ({ size, type: WidthType.PERCENTAGE })
+// A4 直向可用寬度 = 11906 - 1440*2 邊界（twips）。
+// docx@9 的 WidthType.PERCENTAGE 會輸出 w:w="10%"，Word 判定檔案毀損 → 一律用 DXA。
+const CONTENT_W = 9026
+const PCT = [10, 6, 24, 10, 14, 14, 22] // 組別 順序 專題名稱 班級 學號 姓名 簽名
+const COLS = PCT.map((p) => Math.round((CONTENT_W * p) / 100))
+const W = (pct) => ({ size: Math.round((CONTENT_W * pct) / 100), type: WidthType.DXA })
 
 function headerCell(text) {
   return cell([new Paragraph({ alignment: AlignmentType.CENTER, children: [run(text, { bold: true })] })], {
@@ -112,6 +117,7 @@ export function buildReviewSigninDoc(data) {
   // student rows with vertical merges on 組別 / 順序 / 專題名稱
   let prevCat = null
   data.groups.forEach((g) => {
+    if (!g.members.length) return // 空組別不出列，也不能影響類別合併
     const catRestart = !g.category || g.category !== prevCat
     prevCat = g.category
     g.members.forEach((m, mi) => {
@@ -133,7 +139,11 @@ export function buildReviewSigninDoc(data) {
     })
   })
 
-  const table = new Table({ width: W(100), rows })
+  const table = new Table({
+    width: { size: CONTENT_W, type: WidthType.DXA },
+    columnWidths: COLS,
+    rows,
+  })
   return new Document({ sections: [{ children: [table] }] })
 }
 
