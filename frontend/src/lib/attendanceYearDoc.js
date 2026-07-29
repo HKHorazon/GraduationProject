@@ -23,6 +23,9 @@ const SIZE = 32 // 16pt，範例全文同一級
 
 const BORDER = { style: BorderStyle.SINGLE, size: 4, color: '000000' }
 const BORDERS = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER }
+// 組與組的交界線（同範例 w:sz="12"）。合併儲存格內部畫不出橫線，所以用這條粗線分組。
+const THICK = { style: BorderStyle.SINGLE, size: 12, color: '000000' }
+const TOP_THICK = { borders: { ...BORDERS, top: THICK } }
 const MARGINS = { top: 0, bottom: 0, left: 28, right: 28 } // 同範例 tblCellMar
 
 // 滿版：A4 直向 11906 twips 減去上下左右各 567（1cm，同範例）。
@@ -127,6 +130,8 @@ export function buildReviewSigninDoc(data) {
     const catRestart = !g.category || g.category !== prevCat
     prevCat = g.category
     g.members.forEach((m, mi) => {
+      const catStart = mi === 0 && catRestart
+      const top = mi === 0 ? TOP_THICK : {} // 每組第一列補粗線，取代合併格畫不出來的組內橫線
       rows.push(
         new TableRow({
           cantSplit: true,
@@ -134,15 +139,21 @@ export function buildReviewSigninDoc(data) {
           children: [
             // 組別欄直書（同範例）。docx 的 TextDirection 沒有 'tbRlV'（中文直書、字不轉向），
             // 它只有會把字轉 90° 的 'tbRl'，所以直接給 OOXML 值。
-            mergeCell(g.category || '', mi === 0 && catRestart ? 'restart' : 'continue', 0, {
+            // 粗線只加在類別換人時，同類別的組別欄才會維持一整塊。
+            mergeCell(g.category || '', catStart ? 'restart' : 'continue', 0, {
               textDirection: 'tbRlV',
+              ...(catStart ? TOP_THICK : {}),
             }),
-            mergeCell(String(g.order), mi === 0 ? 'restart' : 'continue', 1),
-            mergeCell(g.name, mi === 0 ? 'restart' : 'continue', 2),
-            cell([centered(m.class_label)], { width: W(3) }),
-            cell([centered(m.student_id)], { width: W(4) }),
-            cell([centered(m.isLeader ? `${m.name}（組長）` : m.name)], { width: W(5) }),
-            cell([new Paragraph('')], { width: W(6) }),
+            mergeCell(String(g.order), mi === 0 ? 'restart' : 'continue', 1, top),
+            mergeCell(g.name, mi === 0 ? 'restart' : 'continue', 2, top),
+            cell([centered(m.class_label)], { width: W(3), ...top }),
+            cell([centered(m.student_id)], { width: W(4), ...top }),
+            cell(
+              // 組長標記另起一行，避免撐寬姓名欄
+              m.isLeader ? [centered(m.name), centered('（組長）')] : [centered(m.name)],
+              { width: W(5), ...top }
+            ),
+            cell([new Paragraph('')], { width: W(6), ...top }),
           ],
         })
       )
