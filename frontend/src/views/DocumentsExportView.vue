@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { useDataStore } from '@/stores/data'
 import { useAuthStore } from '@/stores/auth'
 import { rocYear, classLetter } from '@/lib/year'
-import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, GripVertical } from 'lucide-vue-next'
+import { FileText, Printer, ShieldOff, FileSearch, ClipboardList, FileDown, PenLine, GripVertical, ListOrdered, Shuffle } from 'lucide-vue-next'
 import StudentName from '@/components/common/StudentName.vue'
 
 const data = useDataStore()
@@ -12,12 +12,13 @@ const auth = useAuthStore()
 onMounted(() => data.loadAll())
 
 // ── Doc sidebar ───────────────────────────────────────────────────
-const activeDoc = ref('attendance') // 'attendance' | 'form1'
+const activeDoc = ref('attendance')
 
 const DOCS = [
-  { key: 'attendance', icon: ClipboardList, label: '出席表',  sub: '附件・列印' },
-  { key: 'form1',      icon: FileText,      label: '同意書',  sub: '附件一・列印' },
-  { key: 'attendance-year', icon: PenLine,  label: '簽到表', sub: '書面審查・Word' },
+  { key: 'attendance',  icon: ClipboardList, label: '出席表',      sub: '附件・列印' },
+  { key: 'form1',       icon: FileText,      label: '同意書',      sub: '附件一・列印' },
+  { key: 'signin-cat',  icon: PenLine,       label: '簽到表・分類', sub: '依類型分組・Word' },
+  { key: 'signin-free', icon: ListOrdered,   label: '簽到表・自訂', sub: '自由排序・Word' },
 ]
 
 // ── Group selection ───────────────────────────────────────────────
@@ -91,13 +92,15 @@ const reviewTitle = ref('第三次專題書面審查')     // 審查名稱
 const reviewDatetime = ref('')                   // 日期時間
 const reviewLocation = ref('')                   // 地點
 const reviewAudience = ref('日間部全體三年級學生') // 參加對象（可自訂）
+const classPrefix = ref('日三')                   // 班級前綴（資料只存到甲/乙，前綴由使用者填）
 
-// export-only ordering — 兩個分頁各自一份，不寫回資料庫
-const SIGNIN_TABS = [
-  { key: 'category', label: '依類型分組', hint: '拖類型標題可移動整個類型，拖組別可在同類型內調整順序' },
-  { key: 'custom',   label: '自由排序',   hint: '拖拉調整任意順序，僅套用於本次輸出' },
-]
-const signinTab = ref('category')
+// export-only ordering — 兩個子頁各自一份，不寫回資料庫
+const SIGNIN_DOCS = {
+  'signin-cat':  { mode: 'category', tag: '依類型', hint: '拖類型標題可移動整個類型，拖組別可在同類型內調整順序' },
+  'signin-free': { mode: 'custom',   tag: '自訂',   hint: '拖拉調整任意順序，僅套用於本次輸出' },
+}
+const signinDoc = computed(() => SIGNIN_DOCS[activeDoc.value] ?? null)
+const signinTab = computed(() => signinDoc.value?.mode ?? 'category')
 const categoryOrder = ref([])
 const customOrder = ref([])
 const activeOrder = computed(() =>
@@ -163,6 +166,25 @@ function onCatDragEnter(key) {
 }
 function onCatDragEnd() { dragCat.value = null }
 
+// --- 隨機排序 ---
+function shuffled(list) {
+  const a = [...list]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+function randomize() {
+  if (signinTab.value === 'custom') {
+    customOrder.value = shuffled(customOrder.value)
+    return
+  }
+  // 依類型：類型的先後順序隨機，每個類型內部的組別順序也隨機
+  categoryOrder.value = shuffled(bucketRuns(categoryOrder.value))
+    .flatMap((r) => shuffled(r.items))
+}
+
 function categoryCount(g) {
   return categoryOrder.value.filter((x) => (x.category || '') === (g.category || '')).length
 }
@@ -210,6 +232,11 @@ function groupMembers(g) {
 
 const downloading = ref('')
 
+// 班級資料有的存「甲」有的存「日二甲」，只取最後一個班別字，前綴一律由 classPrefix 帶。
+function classCell(c) {
+  return classPrefix.value + String(c ?? '').trim().replace(/班$/, '').slice(-1)
+}
+
 async function downloadSignin(list, tag) {
   if (!sheetYear.value || !list.length || downloading.value) return
   downloading.value = tag
@@ -226,7 +253,7 @@ async function downloadSignin(list, tag) {
         category: g.category || '',
         name: g.name,
         members: groupMembers(g).map((s) => ({
-          class_label: `日三${classLetter(s.class_)}`,
+          class_label: classCell(s.class_),
           student_id: s.student_id,
           name: s.name,
           isLeader: s.id === g.leader_id,
@@ -279,7 +306,7 @@ async function downloadSignin(list, tag) {
       <div class="flex-1 min-w-0 overflow-y-auto">
 
         <!-- toolbar (shared) — attendance-year keeps its config in its own panel -->
-        <div v-if="activeDoc !== 'attendance-year'" class="flex items-center gap-3 flex-wrap mb-4 print:hidden">
+        <div v-if="!signinDoc" class="flex items-center gap-3 flex-wrap mb-4 print:hidden">
           <template>
             <select v-model="filterYear" class="input !w-32 !py-1.5">
               <option value="">全部學年</option>
@@ -300,7 +327,7 @@ async function downloadSignin(list, tag) {
         </div>
 
         <!-- ─── 文件3：專題組別簽到表（書面審查・Word）────────── -->
-        <div v-if="activeDoc === 'attendance-year'" class="max-w-3xl space-y-5">
+        <div v-if="signinDoc" class="max-w-3xl space-y-5">
 
           <!-- config -->
           <div class="card p-4 space-y-3">
@@ -324,9 +351,14 @@ async function downloadSignin(list, tag) {
                 <label class="label">地點</label>
                 <input v-model="reviewLocation" class="input" placeholder="MB106會議廳" />
               </div>
-              <div class="sm:col-span-2">
+              <div>
                 <label class="label">參加對象</label>
                 <input v-model="reviewAudience" class="input" placeholder="日間部全體三年級學生" />
+              </div>
+              <div>
+                <label class="label">班級前綴</label>
+                <input v-model="classPrefix" class="input" placeholder="日三" />
+                <p class="mt-1 text-[11px] text-slate-400">會接上學生的班別字，例如「日三」＋「甲」＝ 日三甲</p>
               </div>
             </div>
             <p v-if="sheetYear" class="text-center text-sm font-semibold text-slate-700 dark:text-slate-200 pt-1">
@@ -352,28 +384,21 @@ async function downloadSignin(list, tag) {
 
           <template v-else>
             <div class="card p-4 space-y-3">
-              <!-- 子分頁 -->
               <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-[#232b3d]">
-                  <button
-                    v-for="t in SIGNIN_TABS"
-                    :key="t.key"
-                    @click="signinTab = t.key"
-                    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                    :class="signinTab === t.key
-                      ? 'bg-white dark:bg-[#1e2535] text-blue-700 dark:text-cyan-300 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
-                  >{{ t.label }}</button>
+                <p class="text-xs text-slate-500 dark:text-slate-400 min-w-0 flex-1">
+                  {{ signinDoc.hint }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <button @click="randomize" class="btn-secondary flex items-center gap-1.5">
+                    <Shuffle class="w-4 h-4" /> 隨機排序
+                  </button>
+                  <button @click="downloadSignin(activeOrder, signinDoc.tag)"
+                          :disabled="!!downloading"
+                          class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
+                    <FileDown class="w-4 h-4" /> {{ downloading ? '產生中…' : '下載 Word' }}
+                  </button>
                 </div>
-                <button @click="downloadSignin(activeOrder, signinTab === 'category' ? '依類型' : '自訂')"
-                        :disabled="!!downloading"
-                        class="btn-primary flex items-center gap-1.5 disabled:opacity-60">
-                  <FileDown class="w-4 h-4" /> {{ downloading ? '產生中…' : '下載 Word' }}
-                </button>
               </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400">
-                {{ SIGNIN_TABS.find((t) => t.key === signinTab).hint }}
-              </p>
 
               <!-- 拖拉排序清單 -->
               <ol class="space-y-1">
