@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -134,6 +135,12 @@ class Review(Base):
     name = Column(String, nullable=False)
     school_year = Column(String, nullable=False, index=True)
     criteria = Column(String, nullable=False)      # JSON: [{name, weight}]
+    # 這次審查的評審名單 JSON：['t1', '外:王大明']。決定總覽要出現哪些欄，
+    # 實際評分時若有名單外的評審會自動補進來（匯入不該被名單擋住）。
+    reviewers = Column(String, nullable=False, default="[]")
+    # 系上老師平均 vs 外審委員平均 的比重（如 60 / 40）
+    internal_weight = Column(Float, nullable=False, default=60)
+    external_weight = Column(Float, nullable=False, default=40)
     is_open = Column(Boolean, nullable=False, default=True)  # 是否開放評分
     created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
 

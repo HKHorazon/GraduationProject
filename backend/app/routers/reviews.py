@@ -47,8 +47,30 @@ def _review_out(r: Review) -> ReviewOut:
         name=r.name,
         school_year=r.school_year,
         criteria=json.loads(r.criteria),
+        reviewers=json.loads(r.reviewers or "[]"),
+        internal_weight=r.internal_weight,
+        external_weight=r.external_weight,
         is_open=r.is_open,
     )
+
+
+def _check_reviewer(db: Session, reviewer: str) -> None:
+    """評審識別碼必須是存在的老師，或是有名字的 `外:xxx`。"""
+    if reviewer.startswith(EXT_PREFIX):
+        if len(reviewer) <= len(EXT_PREFIX):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "外審委員姓名不可空白")
+    elif not db.get(Teacher, reviewer):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"評審 {reviewer} 不存在，外審委員請用「外:姓名」"
+        )
+
+
+def _add_to_roster(review: Review, reviewer: str) -> None:
+    """名單外的評審一填分數就自動補進名單 — 匯入不該被名單擋住。"""
+    roster = json.loads(review.reviewers or "[]")
+    if reviewer not in roster:
+        roster.append(reviewer)
+        review.reviewers = json.dumps(roster, ensure_ascii=False)
 
 
 def _score_out(row: ReviewScore, criteria: list[dict]) -> ReviewScoreOut:
@@ -90,15 +112,13 @@ def _check(db: Session, actor: Account, review: Review, body: ReviewScoreIn) -> 
     if not is_admin and body.reviewer != (actor.teacher_id or ""):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "只能填寫自己的評分")
 
-    if not body.reviewer.startswith(EXT_PREFIX):
-        if not db.get(Teacher, body.reviewer):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "評審不存在，外審委員請用「外:姓名」")
-        if any(t.id == body.reviewer for t in group.teachers):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, f"不可評分自己指導的組別（第{group.number}組）"
-            )
-    elif len(body.reviewer) <= len(EXT_PREFIX):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "外審委員姓名不可空白")
+    _check_reviewer(db, body.reviewer)
+    if not body.reviewer.startswith(EXT_PREFIX) and any(
+        t.id == body.reviewer for t in group.teachers
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"不可評分自己指導的組別（第{group.number}組）"
+        )
     return group
 
 
@@ -153,11 +173,16 @@ def create_review(
         rid = _next_id(db)
     elif db.get(Review, rid):
         raise HTTPException(status.HTTP_409_CONFLICT, "Review id already exists")
+    for r in body.reviewers:
+        _check_reviewer(db, r)
     review = Review(
         id=rid,
         name=body.name,
         school_year=body.school_year,
         criteria=json.dumps([c.model_dump() for c in body.criteria], ensure_ascii=False),
+        reviewers=json.dumps(body.reviewers, ensure_ascii=False),
+        internal_weight=body.internal_weight,
+        external_weight=body.external_weight,
         is_open=body.is_open,
     )
     db.add(review)
@@ -177,6 +202,15 @@ def update_review(
     review = _get_review(db, review_id)
     data = body.model_dump(exclude_unset=True)
     changes: dict = {}
+
+    if "reviewers" in data:
+        new_roster = data.pop("reviewers")
+        for r in new_roster:
+            _check_reviewer(db, r)
+        old_roster = json.loads(review.reviewers or "[]")
+        if new_roster != old_roster:
+            review.reviewers = json.dumps(new_roster, ensure_ascii=False)
+            changes["reviewers"] = {"old": old_roster, "new": new_roster}
 
     if "criteria" in data:
         new_criteria = data.pop("criteria")
@@ -234,6 +268,7 @@ def put_score(
     review = _get_review(db, review_id)
     _check(db, actor, review, body)
     row, payload = _upsert(db, review, body)
+    _add_to_roster(review, body.reviewer)
     audit.dblog(db, actor, "update", "review_scores", None, payload)
     db.commit()
     db.refresh(row)
@@ -253,6 +288,7 @@ def bulk_scores(
     for item in body:
         _check(db, actor, review, item)
         row, _ = _upsert(db, review, item)
+        _add_to_roster(review, item.reviewer)
         rows.append(row)
     audit.dblog(db, actor, "import", "review_scores", review.id,
                 {"count": len(rows), "reviewers": sorted({b.reviewer for b in body})})

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'

@@ -273,8 +273,7 @@ async function submitAdd() {
       leave-from-class="opacity-100" leave-to-class="opacity-0"
     >
       <div v-if="confirmDelete"
-           class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-           @click.self="confirmDelete = null">
+           class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div class="bg-white dark:bg-[#1a2235] rounded-2xl border border-slate-200 dark:border-[#2a3347]
                     shadow-xl p-6 w-80 flex flex-col gap-4">
           <div class="flex items-start gap-3">
@@ -311,8 +310,7 @@ async function submitAdd() {
       leave-from-class="opacity-100" leave-to-class="opacity-0"
     >
       <div v-if="addOpen"
-           class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-           @click.self="addOpen = false">
+           class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div class="bg-white dark:bg-[#1a2235] rounded-2xl border border-slate-200 dark:border-[#2a3347]
                     shadow-xl p-6 w-96 flex flex-col gap-5">
           <div class="flex items-center justify-between">

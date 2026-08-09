@@ -146,6 +146,9 @@ class ReviewBase(BaseModel):
     name: str
     school_year: str
     criteria: list[ReviewCriterion] = Field(min_length=1)
+    reviewers: list[str] = []          # ['t1', '外:王大明']
+    internal_weight: float = Field(default=60, ge=0)   # 系上老師平均佔比
+    external_weight: float = Field(default=40, ge=0)   # 外審委員平均佔比
     is_open: bool = True
 
 
@@ -157,6 +160,9 @@ class ReviewUpdate(BaseModel):
     name: str | None = None
     school_year: str | None = None
     criteria: list[ReviewCriterion] | None = None
+    reviewers: list[str] | None = None
+    internal_weight: float | None = Field(default=None, ge=0)
+    external_weight: float | None = Field(default=None, ge=0)
     is_open: bool | None = None
 
 
