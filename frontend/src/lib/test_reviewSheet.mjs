@@ -39,11 +39,11 @@ function roundTrip(ctx, withScores) {
 
 // --- 1) 多評分項目：分數原樣往返 ---
 const scores = {
-  'g1|t2': { scores: [90, 80] },
-  'g1|外:王大明': { scores: [70, 60] },
-  'g2|t1': { scores: [55, 65] },
-  'g3|t1': { scores: [100, 0] },
-  'g3|t2': { scores: [0, 100] },
+  'g1|t2': { scores: [90, 80], total: 86, comment: '很有想法' },
+  'g1|外:王大明': { scores: [70, 60], total: 66 },
+  'g2|t1': { scores: [55, 65], total: 59 },
+  'g3|t1': { scores: [100, 0], total: 60 },
+  'g3|t2': { scores: [0, 100], total: 40 },
 }
 {
   const ctx = ctxFor(criteria2, scores)
@@ -60,7 +60,8 @@ const scores = {
   assert.equal(aoa[0][1], '指導老師')
   assert.equal(aoa[0][2], '陳老師')
   assert.deepEqual(aoa[0].slice(-3), ['系上平均', '外審平均', '加權總分'])
-  assert.deepEqual(aoa[1].slice(2, 4), ['創意', '完成度'])
+  // 每位評審的區塊：各評分項目 + 總分 + 評語
+  assert.deepEqual(aoa[1].slice(2, 6), ['創意', '完成度', '總分', '評語'])
   assert.equal(aoa[2][1], '陳老師', '第二欄是該組的指導老師')
 
   // 自己指導的組別仍然出現，且該格是紅底的「—」
@@ -69,6 +70,11 @@ const scores = {
   // 寫檔時 rgb 會被正規化成 8 碼 ARGB（FFFFC7CE）
   assert.match(ws[ownRef].s.fill.fgColor.rgb, /FFC7CE$/, '自己組別的格子要塗紅')
   assert.ok(!parsed.some((p) => p.group_id === 'g1' && p.reviewer === 't1'), '紅色格不可被匯入')
+
+  // 評語也要往返
+  const withComment = parsed.find((p) => p.group_id === 'g1' && p.reviewer === 't2')
+  assert.equal(withComment.comment, '很有想法', '評語要跟著往返')
+  assert.equal(parsed.find((p) => p.reviewer === '外:王大明').comment, null, '沒評語就是 null')
 }
 
 // --- 2) 單一總分：兩列表頭仍然成立 ---
