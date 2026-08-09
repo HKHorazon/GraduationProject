@@ -1,7 +1,7 @@
 // 審查評分的 Excel 版型（畫面總覽、匯出、範本、匯入共用同一個矩陣格式）。
 //
-//   row1: 組別 | 指導老師 | 陳老師 …(跨自己的欄) | 系上平均 | 外審平均 | 加權總分
-//   row2:      |          |  項目A | 項目B | 總分 | 評語 |
+//   row1: 組別 | 題目 | 指導老師 | 陳老師 …(跨自己的欄) | 系上平均 | 外審平均 | 加權總分
+//   row2:      |      |          |  項目A | 項目B | 總分 | 評語 |
 //   row3+: 每一組一列
 //
 // 每位評審的區塊＝各評分項目 +（多項目時）總分 + 評語。總分是算出來的，匯入時忽略。
@@ -11,6 +11,7 @@
 import XLSX from 'xlsx-js-style'
 
 export const EXT = '外:'
+export const LEAD_COLS = ['組別', '題目', '指導老師']   // 每位評審的欄位之前的固定欄
 export const AVG_COLS = ['系上平均', '外審平均', '加權總分']
 
 const RED = {
@@ -29,7 +30,7 @@ const HEAD = {
  *   criteria:  [{ name, weight }],
  *   reviewers: ['t1', '外:王大明'],          // 欄位順序
  *   labels:    { t1: '陳老師', '外:王大明': '王大明（外審）' },
- *   groups:    [{ id, number, advisors: '陳、林', own: ['t1'] }],   // own = 不可評此組的評審
+ *   groups:    [{ id, number, name: '題目', advisors: '陳、林', own: ['t1'] }],  // own = 不可評此組的評審
  *   scoreOf:   (groupId, reviewer) => ({ scores: [], total, comment }) | null,
  *   avgOf:     (groupId) => ({ internal, external, final })          // null 表示沒有
  * }
@@ -45,8 +46,8 @@ export function blockHeaders(criteria) {
 export function buildSheet(ctx, { withScores }) {
   const { criteria, reviewers, labels, groups } = ctx
   const sub = blockHeaders(criteria)
-  const row1 = ['組別', '指導老師']
-  const row2 = ['', '']
+  const row1 = [...LEAD_COLS]
+  const row2 = LEAD_COLS.map(() => '')
   for (const r of reviewers) {
     for (const h of sub) {
       row1.push(labels[r] ?? r)
@@ -54,12 +55,12 @@ export function buildSheet(ctx, { withScores }) {
     }
   }
   row1.push(...AVG_COLS)
-  row2.push('', '', '')
+  row2.push(...AVG_COLS.map(() => ''))
 
   const body = []
   const reds = []
   for (const g of groups) {
-    const row = [g.number, g.advisors]
+    const row = [g.number, g.name ?? '', g.advisors]
     for (const r of reviewers) {
       if (g.own.includes(r)) {
         sub.forEach(() => { reds.push([body.length + 2, row.length]); row.push('—') })
@@ -88,12 +89,9 @@ export function buildSheet(ctx, { withScores }) {
     ws[ref] = { ...(ws[ref] ?? { v: '—', t: 's' }), s: RED }
   }
 
-  const merges = [
-    { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
-    { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
-  ]
+  const merges = LEAD_COLS.map((_, c) => ({ s: { r: 0, c }, e: { r: 1, c } }))
   reviewers.forEach((_, i) => {
-    const start = 2 + i * sub.length
+    const start = LEAD_COLS.length + i * sub.length
     merges.push({ s: { r: 0, c: start }, e: { r: 0, c: start + sub.length - 1 } })
   })
   AVG_COLS.forEach((_, i) => {
@@ -102,8 +100,8 @@ export function buildSheet(ctx, { withScores }) {
   })
   ws['!merges'] = merges
   ws['!cols'] = [
-    { wch: 8 }, { wch: 18 },
-    ...Array(Math.max(0, width - 2 - AVG_COLS.length)).fill({ wch: 12 }),
+    { wch: 8 }, { wch: 30 }, { wch: 18 },
+    ...Array(Math.max(0, width - LEAD_COLS.length - AVG_COLS.length)).fill({ wch: 12 }),
     ...AVG_COLS.map(() => ({ wch: 10 })),
   ]
   return ws
@@ -140,16 +138,17 @@ export function parseSheet(ctx, aoa) {
   }
 
   // 合併儲存格讀回來只有第一格有值 → 向右補齊評審名稱
+  const first = LEAD_COLS.length
   const names = []
   let last = ''
-  for (let c = 2; c < head1.length; c++) {
+  for (let c = first; c < head1.length; c++) {
     if (AVG_COLS.includes(head1[c]) || head1[c] === '平均') break
     if (head1[c]) last = head1[c]
     names[c] = last
   }
 
   const blocks = new Map()   // 評審顯示名稱 -> { cols: 各評分項目的欄索引, comment: 評語欄 }
-  for (let c = 2; c < names.length; c++) {
+  for (let c = first; c < names.length; c++) {
     const label = names[c]
     if (!label) continue
     if (!blocks.has(label)) blocks.set(label, { cols: Array(n).fill(-1), comment: -1 })

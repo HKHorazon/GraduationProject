@@ -10,9 +10,9 @@ const criteria1 = [{ name: '總分', weight: 100 }]
 
 // g1 由 t1 指導、g2 由 t2 指導、g3 沒有指導老師
 const GROUPS = [
-  { id: 'g1', number: 1, advisors: '陳老師', own: ['t1'] },
-  { id: 'g2', number: 2, advisors: '林老師', own: ['t2'] },
-  { id: 'g3', number: 3, advisors: '', own: [] },
+  { id: 'g1', number: 1, name: '3D動畫', advisors: '陳老師', own: ['t1'] },
+  { id: 'g2', number: 2, name: '主視覺組', advisors: '林老師', own: ['t2'] },
+  { id: 'g3', number: 3, name: '遊戲開發', advisors: '', own: [] },
 ]
 const REVIEWERS = ['t1', 't2', '外:王大明']
 const LABELS = { t1: '陳老師', t2: '林老師', '外:王大明': '王大明（外審）' }
@@ -56,16 +56,15 @@ const scores = {
 
   // 表頭：第一列是各評審、第一欄組別、第二欄指導老師
   const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 })
-  assert.equal(aoa[0][0], '組別')
-  assert.equal(aoa[0][1], '指導老師')
-  assert.equal(aoa[0][2], '陳老師')
+  assert.deepEqual(aoa[0].slice(0, 4), ['組別', '題目', '指導老師', '陳老師'])
   assert.deepEqual(aoa[0].slice(-3), ['系上平均', '外審平均', '加權總分'])
   // 每位評審的區塊：各評分項目 + 總分 + 評語
-  assert.deepEqual(aoa[1].slice(2, 6), ['創意', '完成度', '總分', '評語'])
-  assert.equal(aoa[2][1], '陳老師', '第二欄是該組的指導老師')
+  assert.deepEqual(aoa[1].slice(3, 7), ['創意', '完成度', '總分', '評語'])
+  assert.equal(aoa[2][1], '3D動畫', '第二欄是組別題目')
+  assert.equal(aoa[2][2], '陳老師', '第三欄是該組的指導老師')
 
   // 自己指導的組別仍然出現，且該格是紅底的「—」
-  const ownRef = XLSX.utils.encode_cell({ r: 2, c: 2 })   // 第1組 × 陳老師(t1)
+  const ownRef = XLSX.utils.encode_cell({ r: 2, c: 3 })   // 第1組 × 陳老師(t1)
   assert.equal(ws[ownRef].v, '—')
   // 寫檔時 rgb 會被正規化成 8 碼 ARGB（FFFFC7CE）
   assert.match(ws[ownRef].s.fill.fgColor.rgb, /FFC7CE$/, '自己組別的格子要塗紅')
@@ -102,9 +101,9 @@ const scores = {
   assert.throws(() => parseSheet(ctx, [['姓名'], []]), /表頭不符/)
   assert.throws(
     () => parseSheet(ctx, [
-      ['組別', '指導老師', '林老師', '林老師'],
-      ['', '', '創意', '完成度'],
-      [1, '陳老師', 999, 50],
+      ['組別', '題目', '指導老師', '林老師', '林老師'],
+      ['', '', '', '創意', '完成度'],
+      [1, '3D動畫', '陳老師', 999, 50],
     ]),
     /分數不合法/,
     '超過 100 要擋'
@@ -112,27 +111,27 @@ const scores = {
   // 同一張表若那格是該老師自己指導的組，即使填了亂數也只會被跳過
   assert.deepEqual(
     parseSheet(ctx, [
-      ['組別', '指導老師', '陳老師', '陳老師'],
-      ['', '', '創意', '完成度'],
-      [1, '陳老師', 999, 50],
+      ['組別', '題目', '指導老師', '陳老師', '陳老師'],
+      ['', '', '', '創意', '完成度'],
+      [1, '3D動畫', '陳老師', 999, 50],
     ]),
     [],
     '自己指導的組別整格跳過，不會被驗證也不會匯入'
   )
   assert.throws(
     () => parseSheet(ctx, [
-      ['組別', '指導老師', '陳老師', '陳老師'],
-      ['', '', '創意', '完成度'],
-      [9, '', 80, 80],
+      ['組別', '題目', '指導老師', '陳老師', '陳老師'],
+      ['', '', '', '創意', '完成度'],
+      [9, '', '', 80, 80],
     ]),
     /找不到組別/
   )
   // 只填一半的評分項目 → 不合法，不可默默當 0
   assert.throws(
     () => parseSheet(ctx, [
-      ['組別', '指導老師', '林老師', '林老師'],
-      ['', '', '創意', '完成度'],
-      [1, '陳老師', 80, ''],
+      ['組別', '題目', '指導老師', '林老師', '林老師'],
+      ['', '', '', '創意', '完成度'],
+      [1, '3D動畫', '陳老師', 80, ''],
     ]),
     /分數不合法/
   )
