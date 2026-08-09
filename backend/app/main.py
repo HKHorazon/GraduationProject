@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import accounts, audit, auth, groups, permissions, students, teachers
+from .routers import accounts, audit, auth, groups, permissions, reviews, students, teachers
 
 app = FastAPI(title="Graduation Project API")
 
@@ -27,3 +27,4 @@ app.include_router(teachers.router, prefix="/teachers", tags=["teachers"])
 app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
 app.include_router(audit.router, prefix="/audit-logs", tags=["audit"])
 app.include_router(permissions.router, prefix="/permissions", tags=["permissions"])
+app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])

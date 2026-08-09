@@ -1,6 +1,15 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from .db import Base
@@ -110,6 +119,58 @@ class DbLog(Base):
     table_name = Column(String, nullable=False)     # students | groups | teachers | accounts
     record_id = Column(String, nullable=True)
     payload = Column(String, nullable=True)         # JSON: changed fields / old & new values
+
+
+class Review(Base):
+    """一次審查場次（第一次企劃審查、第二次創意審查…）。
+
+    criteria 是 JSON list `[{"name": ..., "weight": ...}]`。單一總分的審查就是
+    一個 `{"name": "總分", "weight": 100}` 項目 — 總分模式與六向度尺規模式因此
+    共用同一條加權計算路徑，不需要另一個 mode 欄位。
+    """
+    __tablename__ = "reviews"
+
+    id = Column(String, primary_key=True)          # rv{n}
+    name = Column(String, nullable=False)
+    school_year = Column(String, nullable=False, index=True)
+    criteria = Column(String, nullable=False)      # JSON: [{name, weight}]
+    is_open = Column(Boolean, nullable=False, default=True)  # 是否開放評分
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
+
+    scores = relationship(
+        "ReviewScore", back_populates="review", cascade="all, delete-orphan"
+    )
+
+
+class ReviewScore(Base):
+    """一位評審對一組的評分（分數掛在組別，不分學生）。
+
+    `reviewer` 一欄同時表示系上老師與外審委員：`t3` 是 Teacher.id，`外:王大明`
+    是外審委員。外審委員沒有帳號也沒有 Teacher 紀錄（成績由 admin 從 Excel
+    匯入），共用一欄才能對 (review, group, reviewer) 下唯一索引。
+    ponytail: 不另開外審委員表，姓名就是識別；真要管理外審委員再拆表。
+    """
+    __tablename__ = "review_scores"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    review_id = Column(
+        String, ForeignKey("reviews.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    group_id = Column(
+        String, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    reviewer = Column(String, nullable=False)
+    scores = Column(String, nullable=False)        # JSON: [number, ...] 對齊 review.criteria
+    comment = Column(String, nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+    review = relationship("Review", back_populates="scores")
+
+    __table_args__ = (
+        UniqueConstraint("review_id", "group_id", "reviewer", name="uq_review_score"),
+    )
 
 
 class PagePermission(Base):

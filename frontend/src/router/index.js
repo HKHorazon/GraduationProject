@@ -9,6 +9,7 @@ const routes = [
   { path: '/changes/group-change', name: 'GroupChange', component: () => import('@/views/changes/GroupChangeView.vue') },
   { path: '/documents', name: 'Documents', component: () => import('@/views/DocumentsView.vue') },
   { path: '/documents/export', name: 'DocumentsExport', component: () => import('@/views/DocumentsExportView.vue') },
+  { path: '/reviews', name: 'Reviews', component: () => import('@/views/ReviewsView.vue') },
   { path: '/data', name: 'Data', component: () => import('@/views/DataView.vue') },
   { path: '/audit-logs', name: 'AuditLogs', component: () => import('@/views/AuditLogView.vue') },
   { path: '/accounts', name: 'Accounts', component: () => import('@/views/AccountsView.vue') },

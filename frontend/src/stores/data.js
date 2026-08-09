@@ -8,6 +8,9 @@ export const useDataStore = defineStore('data', () => {
   const students = ref([])
   const groups = ref([])
   const teachers = ref([])
+  const reviews = ref([])          // 審查場次
+  const scores = ref([])           // 目前選取審查的評分（loadScores 之後才有值）
+  const scoresReviewId = ref('')
   const loaded = ref(false)
   const loading = ref(false)
   const error = ref('')
@@ -17,14 +20,16 @@ export const useDataStore = defineStore('data', () => {
     loading.value = true
     error.value = ''
     try {
-      const [s, g, t] = await Promise.all([
+      const [s, g, t, r] = await Promise.all([
         api.get('/students'),
         api.get('/groups'),
         api.get('/teachers'),
+        api.get('/reviews'),
       ])
       students.value = s
       groups.value = g
       teachers.value = t
+      reviews.value = r
       loaded.value = true
     } catch (e) {
       error.value = e.message ?? '載入資料失敗'
@@ -100,10 +105,63 @@ export const useDataStore = defineStore('data', () => {
     )
   }
 
+  // --- 審查評分 ---
+  // 評分是單一審查場次的資料量，只在進入該審查時載入，不塞進 loadAll。
+  async function loadScores(reviewId) {
+    scores.value = await api.get(`/reviews/${reviewId}/scores`)
+    scoresReviewId.value = reviewId
+    return scores.value
+  }
+
+  function _mergeScore(row) {
+    const idx = scores.value.findIndex((s) => s.id === row.id)
+    if (idx === -1) scores.value.push(row)
+    else scores.value[idx] = row
+  }
+
+  async function createReview(payload) {
+    const created = await api.post('/reviews', payload)
+    reviews.value.push(created)
+    return created
+  }
+
+  async function updateReview(id, patch) {
+    const updated = await api.patch(`/reviews/${id}`, patch)
+    const idx = reviews.value.findIndex((r) => r.id === id)
+    if (idx !== -1) reviews.value[idx] = updated
+    return updated
+  }
+
+  async function deleteReview(id) {
+    await api.delete(`/reviews/${id}`)
+    reviews.value = reviews.value.filter((r) => r.id !== id)
+    if (scoresReviewId.value === id) scores.value = []
+  }
+
+  async function putScore(reviewId, payload) {
+    const row = await api.put(`/reviews/${reviewId}/scores`, payload)
+    _mergeScore(row)
+    return row
+  }
+
+  async function importScores(reviewId, rows) {
+    const saved = await api.post(`/reviews/${reviewId}/scores/bulk`, rows)
+    saved.forEach(_mergeScore)
+    return saved
+  }
+
+  async function deleteScore(reviewId, scoreId) {
+    await api.delete(`/reviews/${reviewId}/scores/${scoreId}`)
+    scores.value = scores.value.filter((s) => s.id !== scoreId)
+  }
+
   return {
     students,
     groups,
     teachers,
+    reviews,
+    scores,
+    scoresReviewId,
     loaded,
     loading,
     error,
@@ -117,5 +175,12 @@ export const useDataStore = defineStore('data', () => {
     createGroup,
     reorderGroups,
     deleteGroup,
+    loadScores,
+    createReview,
+    updateReview,
+    deleteReview,
+    putScore,
+    importScores,
+    deleteScore,
   }
 })

@@ -136,6 +136,47 @@ class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ---------- Review (審查評分) ----------
+class ReviewCriterion(BaseModel):
+    name: str
+    weight: float = Field(default=100, gt=0)
+
+
+class ReviewBase(BaseModel):
+    name: str
+    school_year: str
+    criteria: list[ReviewCriterion] = Field(min_length=1)
+    is_open: bool = True
+
+
+class ReviewCreate(ReviewBase):
+    id: str | None = None  # auto-generated when omitted
+
+
+class ReviewUpdate(BaseModel):
+    name: str | None = None
+    school_year: str | None = None
+    criteria: list[ReviewCriterion] | None = None
+    is_open: bool | None = None
+
+
+class ReviewOut(ReviewBase):
+    id: str
+
+
+class ReviewScoreIn(BaseModel):
+    group_id: str
+    reviewer: str            # 系上老師 = Teacher.id（如 t3）；外審委員 = '外:王大明'
+    scores: list[float]      # 對齊該審查的 criteria 順序
+    comment: str | None = None
+
+
+class ReviewScoreOut(ReviewScoreIn):
+    id: int
+    review_id: str
+    total: float             # 依 criteria 權重算出的加權總分
+
+
 # ---------- Page permissions ----------
 # The API payload shape is dict[str, PagePermission] keyed by page_key.
 class PagePermission(BaseModel):

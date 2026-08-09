@@ -10,6 +10,7 @@ export const PAGES = [
   { key: 'group-order',     label: '組別排序',    route: '/groups/order' },
   { key: 'documents',       label: '文件輸入',    route: '/documents' },
   { key: 'documents-export', label: '文件輸出',   route: '/documents/export' },
+  { key: 'reviews',         label: '審查評分',    route: '/reviews' },
   { key: 'data',            label: '資料管理',    route: '/data' },
   { key: 'audit-logs',      label: '異動紀錄',    route: '/audit-logs' },
 ]
@@ -23,6 +24,7 @@ export const DEFAULT_PERMISSIONS = {
   'group-order':  { viewer: false, editor: true  },
   documents:      { viewer: false, editor: true  },
   'documents-export': { viewer: false, editor: true },
+  reviews:        { viewer: false, editor: true  },
   data:           { viewer: false, editor: true  },
   'audit-logs':   { viewer: false, editor: true  },
 }
