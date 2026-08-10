@@ -136,90 +136,78 @@ function sortBy(key) {
   else { sortKey.value = key; sortAsc.value = key === 'number' }
 }
 
-// ---------- 直接在表格上改分數 ----------
-// 畫面上只輸入總分；各評分項目一律填成同一個值（加權平均 = 該值），細項只走 Excel。
-const editingKey = ref('')
-// drafts[`${groupId}|${reviewer}`] = { total, comment }
-const drafts = ref({})
-const keyOf = (gid, rev) => `${gid}|${rev}`
-
-function buildDrafts(hard) {
-  const next = {}
-  for (const g of yearGroups.value) {
-    for (const r of roster.value) {
-      if (isOwn(g, r)) continue
-      const k = keyOf(g.id, r)
-      const row = cell(g.id, r)
-      next[k] = (hard ? null : drafts.value[k]) ?? {
-        total: row ? row.total : '',
-        comment: row?.comment ?? '',
-      }
-    }
-  }
-  drafts.value = next
-}
-// 換審查／改評分項目／名單變動 → 整個重建；其他情況只補上新出現的格子
-watch([reviewId, () => review.value?.criteria.length, roster], () => buildDrafts(true),
-      { immediate: true })
-watch(() => data.scores, () => buildDrafts(false))
+// ---------- 點格子開懸浮視窗改分數 ----------
+// 各評分項目分開填；總分＝依權重加權平均（也可以直接改總分，會把每一項填成同一個值）。
+const edit = ref(null)   // { g, r, scores: [], comment }
 
 const isEmpty = (v) => v === '' || v === null || v === undefined
 
-// 離開欄位時才寫入：有分數就存、清空就刪
-async function commitCell(g, r) {
-  if (!canEdit.value || busy.value) return
-  const d = drafts.value[keyOf(g.id, r)]
-  if (!d) return
+function openCell(g, r) {
+  if (!canEdit.value || isOwn(g, r)) return
   const row = cell(g.id, r)
-  const blank = isEmpty(d.total)
-  if (blank && !row) return
-  if (row && !blank
-      && Number(d.total) === row.total
-      && (row.comment ?? '') === (d.comment ?? '')) return
+  const n = review.value?.criteria.length ?? 1
+  edit.value = {
+    g,
+    r,
+    scores: row ? row.scores.map((s) => s) : Array(n).fill(''),
+    comment: row?.comment ?? '',
+  }
+  error.value = ''
+  nextTick(() => document.getElementById('cell-score-0')?.focus())
+}
+
+const editBlank = computed(() => (edit.value?.scores ?? []).every(isEmpty))
+const editTotal = computed({
+  get() {
+    if (!edit.value || editBlank.value) return ''
+    const cs = review.value.criteria
+    const w = cs.reduce((a, c) => a + c.weight, 0) || 1
+    return r2(edit.value.scores.reduce((a, s, i) => a + (Number(s) || 0) * cs[i].weight, 0) / w)
+  },
+  set(v) {
+    edit.value.scores = edit.value.scores.map(() => v)
+  },
+})
+
+async function saveCell() {
+  if (busy.value || !edit.value) return
+  const { g, r, scores, comment } = edit.value
+  const row = cell(g.id, r)
+  if (editBlank.value && !row) { edit.value = null; return }
+  if (!editBlank.value && scores.some((s) => isEmpty(s) || Number(s) < 0 || Number(s) > 100)) {
+    error.value = '每一項分數都要填，且介於 0 到 100'
+    return
+  }
 
   busy.value = true
   error.value = ''
   try {
-    if (blank) {
+    if (editBlank.value) {
       await data.deleteScore(reviewId.value, row.id)
       message.value = `第${g.number}組 ${reviewerLabel(r)} 的評分已清除`
     } else {
-      const n = review.value?.criteria.length ?? 1
       await data.putScore(reviewId.value, {
         group_id: g.id,
         reviewer: r,
-        scores: Array(n).fill(Number(d.total)),
-        comment: d.comment || null,
+        scores: scores.map(Number),
+        comment: comment || null,
       })
       message.value = `第${g.number}組 ${reviewerLabel(r)} 已儲存`
     }
+    edit.value = null
   } catch (e) {
     error.value = e.message ?? '儲存失敗'
-    buildDrafts(true)   // 失敗就還原成伺服器上的值
   } finally {
     busy.value = false
   }
 }
 
-function draftTotal(g, r) {
-  const d = drafts.value[keyOf(g.id, r)]
-  if (!d) return cell(g.id, r)?.total ?? null
-  return isEmpty(d.total) ? null : r2(Number(d.total))
+function clearCell() {
+  edit.value.scores = edit.value.scores.map(() => '')
+  edit.value.comment = ''
 }
 
-function startEdit(g, r, e) {
-  if (!canEdit.value || isOwn(g, r) || editingKey.value === keyOf(g.id, r)) return
-  editingKey.value = keyOf(g.id, r)
-  const td = e.currentTarget
-  nextTick(() => td.querySelector('input')?.focus())
-}
-// 在同一格的輸入框之間移動不算離開；真的離開才存檔並收合
-function onCellFocusOut(e, g, r) {
-  if (e.currentTarget.contains(e.relatedTarget)) return
-  commitCell(g, r)
-  if (editingKey.value === keyOf(g.id, r)) editingKey.value = ''
-}
-// 收合狀態下把細節放進 tooltip
+// 表格上只顯示總分，細節放進 tooltip
 function cellTitle(g, r) {
   const s = cell(g.id, r)
   if (!s) return canEdit.value ? '點擊輸入評分' : '尚未評分'
@@ -275,7 +263,6 @@ async function onImportFile(e) {
     const payload = parseWorkbook(sheetCtx.value, await file.arrayBuffer())
     if (!payload.length) throw new Error('沒有讀到任何有效的評分')
     await data.importScores(reviewId.value, payload)
-    buildDrafts(true)
     message.value = `已匯入 ${payload.length} 筆評分`
   } catch (err) {
     error.value = err.message ?? '匯入失敗'
@@ -697,36 +684,22 @@ async function removeReview() {
                     :title="advisorNames(g)"
                   >{{ advisorNames(g) || '—' }}</td>
 
-                  <!-- 每位評審一欄，只顯示總分；點下去才就地展開各項輸入 -->
+                  <!-- 每位評審一欄，只顯示總分；點下去開懸浮視窗改各項分數與評語 -->
                   <td
                     v-for="r in roster" :key="r"
                     class="px-1 py-1.5 text-center border-l border-slate-200 dark:border-[#2a3347]"
                     :class="isOwn(g, r)
                       ? 'bg-red-300 dark:bg-red-900/30'
-                      : (canEdit && editingKey !== keyOf(g.id, r) ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-[#2a3347]' : '')"
+                      : (canEdit ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-[#2a3347]' : '')"
                     :title="isOwn(g, r) ? '自己指導的組別，不可評分' : cellTitle(g, r)"
-                    @click="startEdit(g, r, $event)"
-                    @focusout="onCellFocusOut($event, g, r)"
+                    @click="openCell(g, r)"
                   >
                     <span
                       v-if="isOwn(g, r)"
                       class="font-mono font-semibold text-red-800 dark:text-red-400"
                     >—</span>
-                    <div v-else-if="editingKey === keyOf(g.id, r)" class="flex flex-col gap-1 min-w-[6rem]">
-                      <input
-                        v-model="drafts[keyOf(g.id, r)].total"
-                        type="number" min="0" max="100" placeholder="總分"
-                        class="input px-1 py-0.5 text-sm text-center w-16 mx-auto"
-                        @keydown.enter="$event.target.blur()"
-                      />
-                      <input
-                        v-model="drafts[keyOf(g.id, r)].comment"
-                        type="text" placeholder="評語"
-                        class="input px-1 py-0.5 text-xs w-full"
-                      />
-                    </div>
                     <span v-else class="font-mono text-slate-700 dark:text-slate-200">
-                      {{ draftTotal(g, r) ?? '—' }}
+                      {{ cell(g.id, r)?.total ?? '—' }}
                     </span>
                   </td>
 
@@ -759,6 +732,71 @@ async function removeReview() {
           </div>
         </template>
       </template>
+    </div>
+
+    <!-- ---------- 單格評分彈窗 ---------- -->
+    <div
+      v-if="edit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      @click.self="edit = null"
+    >
+      <div class="card w-full max-w-md p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            第{{ edit.g.number }}組 — {{ reviewerLabel(edit.r) }}
+          </h3>
+          <button
+            type="button" class="text-slate-600 hover:text-slate-700 cursor-pointer dark:text-slate-400 dark:hover:text-slate-300"
+            title="關閉" @click="edit = null"
+          ><X class="w-4 h-4" /></button>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-400 truncate" :title="edit.g.name">{{ edit.g.name }}</p>
+
+        <!-- 各評分項目（只有單一總分時就不重複顯示） -->
+        <div v-if="review.criteria.length > 1" class="space-y-2">
+          <div v-for="(c, i) in review.criteria" :key="i" class="flex items-center gap-2">
+            <label :for="`cell-score-${i}`" class="text-sm text-slate-700 dark:text-slate-300 flex-1 truncate">
+              {{ c.name }}
+              <span class="text-xs text-slate-600 dark:text-slate-400">{{ c.weight }}%</span>
+            </label>
+            <input
+              :id="`cell-score-${i}`" v-model="edit.scores[i]"
+              type="number" min="0" max="100" class="input w-24 text-center text-sm"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label for="cell-total" class="text-sm font-semibold text-slate-800 dark:text-slate-100 flex-1">
+            總分
+            <span v-if="review.criteria.length > 1" class="text-xs font-normal text-slate-600 dark:text-slate-400">
+              （加權平均；直接改會把每一項填成同一個值）
+            </span>
+          </label>
+          <input
+            :id="review.criteria.length > 1 ? 'cell-total' : 'cell-score-0'" v-model="editTotal"
+            type="number" min="0" max="100" class="input w-24 text-center text-sm font-mono"
+          />
+        </div>
+
+        <div>
+          <label for="cell-comment" class="label">評語</label>
+          <textarea
+            id="cell-comment" v-model="edit.comment" rows="3"
+            class="input text-sm" placeholder="（可留空）"
+          ></textarea>
+        </div>
+
+        <p class="text-xs text-slate-600 dark:text-slate-400">分數全部清空後儲存＝刪除這筆評分。</p>
+
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <span v-if="error" class="text-xs text-red-700 dark:text-red-400 mr-auto">{{ error }}</span>
+          <button type="button" class="btn-secondary text-sm" @click="clearCell">清空</button>
+          <button type="button" class="btn-secondary text-sm" @click="edit = null">取消</button>
+          <button type="button" class="btn-primary text-sm" :disabled="busy" @click="saveCell">
+            {{ busy ? '處理中…' : '儲存' }}
+          </button>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>
