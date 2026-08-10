@@ -1,9 +1,9 @@
 // 審查評分 Excel 版型的自我檢查：build → 寫成 xlsx → 讀回 → parse，
-// 分數要一模一樣，且自己指導的組別要是紅色且被跳過。
+// 分數要一模一樣，且自己指導的組別不會出現在該評審的工作表裡。
 // 執行： cd frontend && node src/lib/test_reviewSheet.mjs
 import assert from 'node:assert/strict'
 import XLSX from 'xlsx-js-style'
-import { buildSheet, parseSheet, toWorkbook, sheetToAoa } from './reviewSheet.js'
+import { buildWorkbook, parseWorkbook } from './reviewSheet.js'
 
 const criteria2 = [{ name: '創意', weight: 60 }, { name: '完成度', weight: 40 }]
 const criteria1 = [{ name: '總分', weight: 100 }]
@@ -31,10 +31,21 @@ function ctxFor(criteria, scores) {
   }
 }
 
+const write = (wb) => XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+const aoaOf = (wb, name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })
+
 function roundTrip(ctx, withScores) {
-  const ws = buildSheet(ctx, { withScores })
-  const buf = XLSX.write(toWorkbook(ws), { type: 'array', bookType: 'xlsx' })
-  return { ws, parsed: parseSheet(ctx, sheetToAoa(buf)) }
+  const wb = buildWorkbook(ctx, { withScores })
+  return { wb, parsed: parseWorkbook(ctx, write(wb)) }
+}
+
+// 用自訂 aoa 湊一本活頁簿，測壞資料
+function wbOf(sheets) {
+  const wb = XLSX.utils.book_new()
+  for (const [name, aoa] of Object.entries(sheets)) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name)
+  }
+  return write(wb)
 }
 
 // --- 1) 多評分項目：分數原樣往返 ---
@@ -47,28 +58,25 @@ const scores = {
 }
 {
   const ctx = ctxFor(criteria2, scores)
-  const { ws, parsed } = roundTrip(ctx, true)
+  const { wb, parsed } = roundTrip(ctx, true)
 
   const got = Object.fromEntries(parsed.map((p) => [`${p.group_id}|${p.reviewer}`, p.scores]))
   assert.deepEqual(got, Object.fromEntries(
     Object.entries(scores).map(([k, v]) => [k, v.scores])
   ), '分數往返後應完全相同')
 
-  // 表頭：第一列是各評審、第一欄組別、第二欄指導老師
-  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 })
-  assert.deepEqual(aoa[0].slice(0, 4), ['組別', '題目', '指導老師', '陳老師'])
-  assert.deepEqual(aoa[0].slice(-3), ['系上平均', '外審平均', '加權總分'])
-  // 每位評審的區塊：各評分項目 + 總分 + 評語
-  assert.deepEqual(aoa[1].slice(3, 7), ['創意', '完成度', '總分', '評語'])
-  assert.equal(aoa[2][1], '3D動畫', '第二欄是組別題目')
-  assert.equal(aoa[2][2], '陳老師', '第三欄是該組的指導老師')
+  // 匯出成績：總覽 + 一位評審一張表
+  assert.deepEqual(wb.SheetNames, ['總覽', '陳老師', '林老師', '王大明（外審）'])
+  assert.deepEqual(aoaOf(wb, '總覽')[0], ['組別', '題目', '指導老師', '系上平均', '外審平均', '加權總分'])
 
-  // 自己指導的組別仍然出現，且該格是紅底的「—」
-  const ownRef = XLSX.utils.encode_cell({ r: 2, c: 3 })   // 第1組 × 陳老師(t1)
-  assert.equal(ws[ownRef].v, '—')
-  // 寫檔時 rgb 會被正規化成 8 碼 ARGB（FFFFC7CE）
-  assert.match(ws[ownRef].s.fill.fgColor.rgb, /FFC7CE$/, '自己組別的格子要塗紅')
-  assert.ok(!parsed.some((p) => p.group_id === 'g1' && p.reviewer === 't1'), '紅色格不可被匯入')
+  const a = aoaOf(wb, '陳老師')
+  assert.equal(a[0][0], '評審：陳老師', 'A1 是評審姓名，匯入靠這格認人')
+  assert.deepEqual(a[1], ['組別', '題目', '指導老師', '創意 (60%)', '完成度 (40%)', '總分', '評語'])
+  // t1 指導 g1 → 第 1 組不該出現在陳老師的表裡
+  assert.deepEqual(a.slice(2).map((r) => r[0]), [2, 3], '自己指導的組別不列出來')
+  assert.equal(a[2][1], '主視覺組')
+  assert.equal(a[2][2], '林老師')
+  assert.ok(!parsed.some((p) => p.group_id === 'g1' && p.reviewer === 't1'))
 
   // 評語也要往返
   const withComment = parsed.find((p) => p.group_id === 'g1' && p.reviewer === 't2')
@@ -76,10 +84,11 @@ const scores = {
   assert.equal(parsed.find((p) => p.reviewer === '外:王大明').comment, null, '沒評語就是 null')
 }
 
-// --- 2) 單一總分：兩列表頭仍然成立 ---
+// --- 2) 單一總分：欄位名稱與評分項目同名也不會被當成計算欄 ---
 {
   const ctx = ctxFor(criteria1, { 'g1|t2': { scores: [88] }, 'g2|外:王大明': { scores: [61] } })
-  const { parsed } = roundTrip(ctx, true)
+  const { wb, parsed } = roundTrip(ctx, true)
+  assert.deepEqual(aoaOf(wb, '林老師')[1], ['組別', '題目', '指導老師', '總分 (100%)', '評語'])
   assert.deepEqual(
     parsed.sort((a, b) => a.group_id.localeCompare(b.group_id)),
     [
@@ -89,51 +98,55 @@ const scores = {
   )
 }
 
-// --- 3) 空白範本讀回來是零筆（不會誤生 0 分） ---
+// --- 3) 空白範本讀回來是零筆（不會誤生 0 分），也沒有總覽 ---
 {
-  const { parsed } = roundTrip(ctxFor(criteria2, {}), false)
+  const ctx = ctxFor(criteria2, {})
+  const { wb, parsed } = roundTrip(ctx, false)
+  assert.deepEqual(wb.SheetNames, ['陳老師', '林老師', '王大明（外審）'], '範本沒有總覽')
   assert.equal(parsed.length, 0, '空白範本不該產生任何評分')
 }
 
 // --- 4) 壞資料要擋下來 ---
 {
   const ctx = ctxFor(criteria2, {})
-  assert.throws(() => parseSheet(ctx, [['姓名'], []]), /表頭不符/)
+  const head = ['組別', '題目', '指導老師', '創意 (60%)', '完成度 (40%)', '總分', '評語']
+
+  // 舊的矩陣版型（A1 是「組別」）不再接受
   assert.throws(
-    () => parseSheet(ctx, [
-      ['組別', '題目', '指導老師', '林老師', '林老師'],
-      ['', '', '', '創意', '完成度'],
-      [1, '3D動畫', '陳老師', 999, 50],
-    ]),
+    () => parseWorkbook(ctx, wbOf({ 評分: [['組別', '題目', '指導老師', '陳老師'], []] })),
+    /格式不符/
+  )
+  assert.throws(
+    () => parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], ['姓名'], []] })),
+    /不是表頭/
+  )
+  assert.throws(
+    () => parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], head, [1, '3D動畫', '陳老師', 999, 50]] })),
     /分數不合法/,
     '超過 100 要擋'
   )
-  // 同一張表若那格是該老師自己指導的組，即使填了亂數也只會被跳過
-  assert.deepEqual(
-    parseSheet(ctx, [
-      ['組別', '題目', '指導老師', '陳老師', '陳老師'],
-      ['', '', '', '創意', '完成度'],
-      [1, '3D動畫', '陳老師', 999, 50],
-    ]),
-    [],
-    '自己指導的組別整格跳過，不會被驗證也不會匯入'
-  )
-  assert.throws(
-    () => parseSheet(ctx, [
-      ['組別', '題目', '指導老師', '陳老師', '陳老師'],
-      ['', '', '', '創意', '完成度'],
-      [9, '', '', 80, 80],
-    ]),
-    /找不到組別/
-  )
   // 只填一半的評分項目 → 不合法，不可默默當 0
   assert.throws(
-    () => parseSheet(ctx, [
-      ['組別', '題目', '指導老師', '林老師', '林老師'],
-      ['', '', '', '創意', '完成度'],
-      [1, '3D動畫', '陳老師', 80, ''],
-    ]),
+    () => parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], head, [1, '3D動畫', '陳老師', 80, '']] })),
     /分數不合法/
+  )
+  assert.throws(
+    () => parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], head, [9, '', '', 80, 80]] })),
+    /找不到組別/
+  )
+  assert.throws(
+    () => parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], [...head.slice(0, 4), '手感'], []] })),
+    /不是這次審查的評分項目/
+  )
+  // 老師自己加回自己指導的組 → 整列跳過，不會被驗證也不會匯入
+  assert.deepEqual(
+    parseWorkbook(ctx, wbOf({ 陳老師: [['評審：陳老師'], head, [1, '3D動畫', '陳老師', 999, 50]] })),
+    []
+  )
+  // 總覽被略過，但整本至少要有一張評審表
+  assert.throws(
+    () => parseWorkbook(ctx, wbOf({ 總覽: [['組別', '題目', '指導老師', '系上平均']] })),
+    /格式不符/
   )
 }
 

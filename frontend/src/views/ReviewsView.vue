@@ -3,13 +3,14 @@
 // 老師不用自己的帳號評分 —— 成績一律由管理者用 Excel 匯入，或直接在下方表格上改。
 // 系上老師不可評自己指導的組（後端也擋），那些格子是紅色的。
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { EXT, buildSheet, parseSheet, downloadSheet, sheetToAoa } from '@/lib/reviewSheet'
+import { EXT, buildWorkbook, parseWorkbook, downloadWorkbook } from '@/lib/reviewSheet'
 import {
   ClipboardCheck, Plus, Settings2, Trash2, Lock, LockOpen,
   Download, Upload, FileSpreadsheet, X, ChevronUp, ChevronDown,
 } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import GroupName from '@/components/common/GroupName.vue'
+import StudentName from '@/components/common/StudentName.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
@@ -17,15 +18,6 @@ import { rocYear } from '@/lib/year'
 const auth = useAuthStore()
 const data = useDataStore()
 
-// 附件四「學生專題製作之評量尺規」
-const RUBRIC = [
-  { name: '具有服務社會與團隊合作之能力', weight: 15 },
-  { name: '具備國際視野與溝通協調之能力', weight: 10 },
-  { name: '具備跨域整合與數位創作之能力', weight: 25 },
-  { name: '具備動漫設計與遊戲開發之能力', weight: 20 },
-  { name: '具備活動展演與直播行銷之能力', weight: 15 },
-  { name: '具備創新思維與問題分析之能力', weight: 15 },
-]
 const TOTAL_ONLY = [{ name: '總分', weight: 100 }]
 
 // 系上老師欄位的固定順序（系上習慣）。名單外的老師接在後面，外審委員永遠最後。
@@ -66,16 +58,18 @@ function teacherName(id) {
 function reviewerLabel(key) {
   return key.startsWith(EXT) ? `${key.slice(EXT.length)}（外審）` : teacherName(key)
 }
+// 表格欄頭用的簡短名稱：外審委員不加「（外審）」，欄頭已用黃字標示（hover 的 title 仍給全名）
+function reviewerShort(key) {
+  return key.startsWith(EXT) ? key.slice(EXT.length) : teacherName(key)
+}
 function advisorNames(g) {
   return g.teacher_ids.map(teacherName).join('、')
 }
+function leaderOf(g) {
+  return data.students.find((s) => s.id === g.leader_id) ?? null
+}
 function isOwn(g, reviewerKey) {
   return !reviewerKey.startsWith(EXT) && g.teacher_ids.includes(reviewerKey)
-}
-function weightedTotal(values) {
-  const cs = review.value?.criteria ?? []
-  const w = cs.reduce((a, c) => a + c.weight, 0) || 1
-  return r2(values.reduce((a, v, i) => a + (Number(v) || 0) * (cs[i]?.weight ?? 0), 0) / w)
 }
 
 // ---------- 評審名單 ----------
@@ -143,14 +137,13 @@ function sortBy(key) {
 }
 
 // ---------- 直接在表格上改分數 ----------
-// 畫面每位評審只有一欄「總分」；點下去該格才就地展開各評分項目與評語的輸入框。
+// 畫面上只輸入總分；各評分項目一律填成同一個值（加權平均 = 該值），細項只走 Excel。
 const editingKey = ref('')
-// drafts[`${groupId}|${reviewer}`] = { scores: [], comment }
+// drafts[`${groupId}|${reviewer}`] = { total, comment }
 const drafts = ref({})
 const keyOf = (gid, rev) => `${gid}|${rev}`
 
 function buildDrafts(hard) {
-  const n = review.value?.criteria.length ?? 0
   const next = {}
   for (const g of yearGroups.value) {
     for (const r of roster.value) {
@@ -158,7 +151,7 @@ function buildDrafts(hard) {
       const k = keyOf(g.id, r)
       const row = cell(g.id, r)
       next[k] = (hard ? null : drafts.value[k]) ?? {
-        scores: row ? [...row.scores] : Array(n).fill(''),
+        total: row ? row.total : '',
         comment: row?.comment ?? '',
       }
     }
@@ -172,17 +165,16 @@ watch(() => data.scores, () => buildDrafts(false))
 
 const isEmpty = (v) => v === '' || v === null || v === undefined
 
-// 離開欄位時才寫入：填滿就存、整組清空就刪、只填一半就先留在畫面上
+// 離開欄位時才寫入：有分數就存、清空就刪
 async function commitCell(g, r) {
   if (!canEdit.value || busy.value) return
   const d = drafts.value[keyOf(g.id, r)]
   if (!d) return
   const row = cell(g.id, r)
-  const filled = d.scores.every((v) => !isEmpty(v))
-  const blank = d.scores.every(isEmpty)
-  if (!filled && !(blank && row)) return
-  if (row && filled
-      && row.scores.every((v, i) => Number(d.scores[i]) === v)
+  const blank = isEmpty(d.total)
+  if (blank && !row) return
+  if (row && !blank
+      && Number(d.total) === row.total
       && (row.comment ?? '') === (d.comment ?? '')) return
 
   busy.value = true
@@ -192,10 +184,11 @@ async function commitCell(g, r) {
       await data.deleteScore(reviewId.value, row.id)
       message.value = `第${g.number}組 ${reviewerLabel(r)} 的評分已清除`
     } else {
+      const n = review.value?.criteria.length ?? 1
       await data.putScore(reviewId.value, {
         group_id: g.id,
         reviewer: r,
-        scores: d.scores.map(Number),
+        scores: Array(n).fill(Number(d.total)),
         comment: d.comment || null,
       })
       message.value = `第${g.number}組 ${reviewerLabel(r)} 已儲存`
@@ -210,8 +203,8 @@ async function commitCell(g, r) {
 
 function draftTotal(g, r) {
   const d = drafts.value[keyOf(g.id, r)]
-  if (!d || d.scores.some(isEmpty)) return cell(g.id, r)?.total ?? null
-  return weightedTotal(d.scores)
+  if (!d) return cell(g.id, r)?.total ?? null
+  return isEmpty(d.total) ? null : r2(Number(d.total))
 }
 
 function startEdit(g, r, e) {
@@ -238,7 +231,7 @@ const criteriaSummary = computed(() =>
   (review.value?.criteria ?? []).map((c) => `${c.name} ${c.weight}%`).join('、')
 )
 
-// ---------- Excel（矩陣版型，與畫面表格相同；實作在 lib/reviewSheet.js） ----------
+// ---------- Excel（一位評審一張工作表；實作在 lib/reviewSheet.js） ----------
 const sheetCtx = computed(() => ({
   criteria: review.value?.criteria ?? [],
   reviewers: roster.value,
@@ -261,12 +254,12 @@ const sheetCtx = computed(() => ({
 }))
 
 function exportScores() {
-  downloadSheet(buildSheet(sheetCtx.value, { withScores: true }),
-                `${review.value.name}_評分_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  downloadWorkbook(buildWorkbook(sheetCtx.value, { withScores: true }),
+                   `${review.value.name}_評分_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 function exportTemplate() {
-  downloadSheet(buildSheet(sheetCtx.value, { withScores: false }),
-                `${review.value.name}_評分範本.xlsx`)
+  downloadWorkbook(buildWorkbook(sheetCtx.value, { withScores: false }),
+                   `${review.value.name}_評分範本.xlsx`)
 }
 
 const fileInput = ref(null)
@@ -279,7 +272,7 @@ async function onImportFile(e) {
   error.value = ''
   message.value = ''
   try {
-    const payload = parseSheet(sheetCtx.value, sheetToAoa(await file.arrayBuffer()))
+    const payload = parseWorkbook(sheetCtx.value, await file.arrayBuffer())
     if (!payload.length) throw new Error('沒有讀到任何有效的評分')
     await data.importScores(reviewId.value, payload)
     buildDrafts(true)
@@ -332,9 +325,7 @@ function openEdit() {
   error.value = ''
   formOpen.value = true
 }
-function usePreset(preset) {
-  form.value.criteria = structuredClone(preset === 'rubric' ? RUBRIC : TOTAL_ONLY)
-}
+function useTotalOnly() { form.value.criteria = structuredClone(TOTAL_ONLY) }
 function addCriterion() { form.value.criteria.push({ name: '', weight: 10 }) }
 function removeCriterion(i) {
   if (form.value.criteria.length > 1) form.value.criteria.splice(i, 1)
@@ -431,7 +422,7 @@ async function removeReview() {
             <ClipboardCheck class="w-5 h-5 text-blue-700 dark:text-cyan-400" /> 審查評分
           </h2>
           <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">
-            成績由管理者以 Excel 匯入，也可以直接在表格上修改。系上老師不可評分自己指導的組別（紅色格）。
+            成績由管理者以 Excel 匯入，也可以直接在表格上輸入總分。系上老師不可評分自己指導的組別（紅色格）。
           </p>
         </div>
         <div v-if="auth.isSuperAdmin && !formOpen" class="flex items-center gap-2">
@@ -486,8 +477,7 @@ async function removeReview() {
           <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <label class="label mb-0">評分項目</label>
             <div class="flex items-center gap-2">
-              <button type="button" class="btn-secondary text-xs py-1" @click="usePreset('total')">單一總分</button>
-              <button type="button" class="btn-secondary text-xs py-1" @click="usePreset('rubric')">六向度尺規</button>
+              <button type="button" class="btn-secondary text-xs py-1" @click="useTotalOnly">單一總分</button>
               <button type="button" class="btn-secondary text-xs py-1 flex items-center gap-1" @click="addCriterion">
                 <Plus class="w-3 h-3" /> 新增項目
               </button>
@@ -638,7 +628,7 @@ async function removeReview() {
               <Download class="w-3.5 h-3.5" /> 匯出成績
             </button>
             <span v-if="canEdit" class="text-xs text-slate-600 dark:text-slate-400">
-              Excel 版型與下表相同。直接在格子輸入、離開欄位即存檔；把某位評審的分數全部清空＝刪除該筆。
+              Excel 一位評審一張工作表（自己指導的組別不會列出）。直接在格子輸入總分、離開欄位即存檔；清空該格＝刪除該筆。
             </span>
           </div>
 
@@ -660,20 +650,21 @@ async function removeReview() {
                     />
                   </th>
                   <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 whitespace-nowrap dark:text-slate-400">題目</th>
+                  <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 whitespace-nowrap dark:text-slate-400">組長</th>
                   <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 whitespace-nowrap dark:text-slate-400">指導老師</th>
                   <th
                     v-for="r in roster" :key="r"
-                    class="px-2 py-2 text-xs font-medium text-center border-l border-slate-200 dark:border-[#2a3347]"
+                    class="px-1 py-2 text-xs font-medium text-center border-l border-slate-200 dark:border-[#2a3347]"
                     :class="r.startsWith(EXT) ? 'text-amber-800 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'"
                     :title="reviewerLabel(r)"
-                  ><span class="block max-w-[8rem] truncate mx-auto">{{ reviewerLabel(r) }}</span></th>
+                  ><span class="block max-w-[4.5rem] truncate mx-auto">{{ reviewerShort(r) }}</span></th>
                   <th
                     v-for="c in [
                       { key: 'internal', label: '系上', title: '系上老師平均' },
                       { key: 'external', label: '外審', title: '外審委員平均' },
                       { key: 'final', label: '總分', title: '加權總分（系上 × 系上% ＋ 外審 × 外審%）' },
                     ]" :key="c.key"
-                    class="px-2 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 text-center
+                    class="w-20 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 text-center
                            whitespace-nowrap cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300
                            border-l border-slate-200 dark:border-[#2a3347] dark:text-slate-400"
                     :title="`${c.title}（點擊排序）`"
@@ -697,6 +688,10 @@ async function removeReview() {
                       <GroupName :group="g" />
                     </span>
                   </td>
+                  <td class="px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                    <StudentName v-if="leaderOf(g)" :student="leaderOf(g)" />
+                    <span v-else>—</span>
+                  </td>
                   <td
                     class="px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap"
                     :title="advisorNames(g)"
@@ -718,21 +713,12 @@ async function removeReview() {
                       class="font-mono font-semibold text-red-800 dark:text-red-400"
                     >—</span>
                     <div v-else-if="editingKey === keyOf(g.id, r)" class="flex flex-col gap-1 min-w-[6rem]">
-                      <div
-                        v-for="(c, i) in review.criteria" :key="c.name"
-                        class="flex items-center gap-1"
-                      >
-                        <span
-                          v-if="review.criteria.length > 1"
-                          class="text-[10px] text-slate-600 dark:text-slate-400 flex-1 truncate text-left" :title="c.name"
-                        >{{ c.name }}</span>
-                        <input
-                          v-model="drafts[keyOf(g.id, r)].scores[i]"
-                          type="number" min="0" max="100"
-                          class="input px-1 py-0.5 text-sm text-center w-16"
-                          @keydown.enter="$event.target.blur()"
-                        />
-                      </div>
+                      <input
+                        v-model="drafts[keyOf(g.id, r)].total"
+                        type="number" min="0" max="100" placeholder="總分"
+                        class="input px-1 py-0.5 text-sm text-center w-16 mx-auto"
+                        @keydown.enter="$event.target.blur()"
+                      />
                       <input
                         v-model="drafts[keyOf(g.id, r)].comment"
                         type="text" placeholder="評語"
@@ -744,26 +730,26 @@ async function removeReview() {
                     </span>
                   </td>
 
-                  <td class="px-2 py-1.5 text-center font-mono text-slate-600 dark:text-slate-300
+                  <td class="px-4 py-1.5 text-center font-mono text-slate-600 dark:text-slate-300
                              border-l border-slate-200 dark:border-[#2a3347]">
                     {{ avgOf(g.id, internalReviewers) ?? '—' }}
                   </td>
-                  <td class="px-2 py-1.5 text-center font-mono text-slate-600 dark:text-slate-300
+                  <td class="px-4 py-1.5 text-center font-mono text-slate-600 dark:text-slate-300
                              border-l border-slate-200 dark:border-[#2a3347]">
                     {{ avgOf(g.id, externalReviewers) ?? '—' }}
                   </td>
-                  <td class="px-2 py-1.5 text-center font-mono font-semibold text-blue-700 dark:text-cyan-400
+                  <td class="px-4 py-1.5 text-center font-mono font-semibold text-blue-700 dark:text-cyan-400
                              border-l border-slate-200 dark:border-[#2a3347]">
                     {{ finalScore(g.id) ?? '—' }}
                   </td>
                 </tr>
                 <tr v-if="!roster.length">
-                  <td colspan="6" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
+                  <td colspan="7" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                     尚未設定評審名單，也還沒有任何評分{{ auth.isSuperAdmin ? '——按「設定」加入評審。' : '。' }}
                   </td>
                 </tr>
                 <tr v-else-if="!groups.length">
-                  <td :colspan="6 + roster.length"
+                  <td :colspan="7 + roster.length"
                       class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                     此學年沒有組別
                   </td>
