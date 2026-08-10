@@ -3,13 +3,14 @@
 @tailwind utilities;
 
 /*
-  Light mode = warm "parchment" theme (not pure white).
+  Light mode = "tech grey"：灰底帶一點藍，與深色模式同色溫。
   Dark mode keeps the existing dark-tech palette.
-  Parchment tokens:
-    page    #ece3cf
-    surface #f7f1e1  (cards, inputs, white panels)
-    raised  #fbf7ec  (slightly lighter)
-    border  #ddd0b3
+  Light tokens（色碼唯一來源，改這裡就好；規範見 .claude/skills/web-color）：
+    page    #eaeff5
+    surface #f9fbfd  (cards, sidebar, .bg-white)
+    raised  #ffffff  (inputs)
+    alt     #dde5ee  (.bg-slate-100 / 次級底)
+    border  #d6dfe9
 */
 
 * { box-sizing: border-box; }
@@ -17,15 +18,15 @@
 body {
   font-family: 'Noto Sans TC', sans-serif;
   -webkit-font-smoothing: antialiased;
-  background-color: #ece3cf;
+  background-color: #eaeff5;
 }
 .dark body { background-color: #0f1117; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #e4d9bf; }
-::-webkit-scrollbar-thumb { background: #c9b98f; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #b3a073; }
+::-webkit-scrollbar-track { background: #e6ecf3; }
+::-webkit-scrollbar-thumb { background: #b9c6d6; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9dafc4; }
 .dark ::-webkit-scrollbar-track { background: #161b27; }
 .dark ::-webkit-scrollbar-thumb { background: #2a3347; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
@@ -35,14 +36,14 @@ body {
   These recolor the common Tailwind surface utilities used inline across views
   so the whole app picks up the parchment look without editing every component.
 */
-html:not(.dark) .bg-white { background-color: #f7f1e1 !important; }
-html:not(.dark) .bg-slate-50 { background-color: #ece3cf !important; }
-html:not(.dark) .bg-slate-50\/60 { background-color: rgba(236, 227, 207, 0.6) !important; }
-html:not(.dark) .bg-slate-50\/50 { background-color: rgba(236, 227, 207, 0.5) !important; }
-html:not(.dark) .bg-slate-100 { background-color: #e7dcc2 !important; }
-html:not(.dark) .border-slate-200 { border-color: #ddd0b3 !important; }
-html:not(.dark) .border-slate-100 { border-color: #e4d9bf !important; }
-html:not(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #e4d9bf !important; }
+html:not(.dark) .bg-white { background-color: #f9fbfd !important; }
+html:not(.dark) .bg-slate-50 { background-color: #eaeff5 !important; }
+html:not(.dark) .bg-slate-50\/60 { background-color: rgba(234, 239, 245, 0.6) !important; }
+html:not(.dark) .bg-slate-50\/50 { background-color: rgba(234, 239, 245, 0.5) !important; }
+html:not(.dark) .bg-slate-100 { background-color: #dde5ee !important; }
+html:not(.dark) .border-slate-200 { border-color: #d6dfe9 !important; }
+html:not(.dark) .border-slate-100 { border-color: #e6ecf3 !important; }
+html:not(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #e6ecf3 !important; }
 
 /*
   學生更動 (RemoveStudentView) is built with a hard-coded dark-tech palette.
@@ -50,14 +51,14 @@ html:not(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-col
   page matches the rest of the app and stays readable. Scoped to .stu-change so
   no other page is affected.
 */
-html:not(.dark) .stu-change .bg-dark-card { background-color: #f7f1e1 !important; }
-html:not(.dark) .stu-change .bg-dark-border { background-color: #e7dcc2 !important; }
-html:not(.dark) .stu-change .border-dark-border { border-color: #ddd0b3 !important; }
-html:not(.dark) .stu-change .bg-\[\#0f1520\] { background-color: #efe7d3 !important; }
-html:not(.dark) .stu-change .hover\:bg-\[\#1e2535\]\/80:hover { background-color: #efe7d3 !important; }
-html:not(.dark) .stu-change .border-slate-800 { border-color: #ddd0b3 !important; }
-html:not(.dark) .stu-change .border-slate-600 { border-color: #c9b98f !important; }
-html:not(.dark) .stu-change .hover\:border-slate-600:hover { border-color: #c9b98f !important; }
+html:not(.dark) .stu-change .bg-dark-card { background-color: #f9fbfd !important; }
+html:not(.dark) .stu-change .bg-dark-border { background-color: #dde5ee !important; }
+html:not(.dark) .stu-change .border-dark-border { border-color: #d6dfe9 !important; }
+html:not(.dark) .stu-change .bg-\[\#0f1520\] { background-color: #eef2f7 !important; }
+html:not(.dark) .stu-change .hover\:bg-\[\#1e2535\]\/80:hover { background-color: #eef2f7 !important; }
+html:not(.dark) .stu-change .border-slate-800 { border-color: #d6dfe9 !important; }
+html:not(.dark) .stu-change .border-slate-600 { border-color: #b9c6d6 !important; }
+html:not(.dark) .stu-change .hover\:border-slate-600:hover { border-color: #b9c6d6 !important; }
 
 /* text */
 html:not(.dark) .stu-change .text-white,
@@ -86,8 +87,8 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
   /* Card */
   .card {
     @apply rounded-xl border shadow-sm;
-    background-color: #f7f1e1;
-    border-color: #ddd0b3;
+    background-color: #f9fbfd;
+    border-color: #d6dfe9;
   }
   .dark .card {
     background-color: #1e2535;
@@ -107,10 +108,10 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
 
   .btn-secondary {
     @apply text-slate-700 font-medium px-4 py-2 rounded-lg border transition-colors text-sm cursor-pointer;
-    background-color: #f3ecda;
-    border-color: #ddd0b3;
+    background-color: #eef2f7;
+    border-color: #d6dfe9;
   }
-  .btn-secondary:hover { background-color: #e9dfc6; }
+  .btn-secondary:hover { background-color: #e2e9f1; }
   .dark .btn-secondary {
     background-color: #1e2535;
     border-color: #2a3347;
@@ -126,8 +127,8 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
   /* Input */
   .input {
     @apply w-full border text-slate-800 rounded-lg px-3 py-2 text-sm outline-none transition cursor-pointer;
-    background-color: #fbf7ec;
-    border-color: #d8caa9;
+    background-color: #ffffff;
+    border-color: #cfdae6;
   }
   .input:focus { border-color: #00b3d8; box-shadow: 0 0 0 2px rgba(0,179,216,0.15); }
   .dark .input {

@@ -1,6 +1,6 @@
 ---
 name: web-color
-description: 本專案唯一的顏色規範 — 雙主題（Dark Tech 深色預設／Parchment 淺色）token 對照表、已量測過對比度的可用色、以及禁止事項。任何要寫或改 frontend/ 顏色、背景、文字色、邊框、badge、狀態色的工作，動手前必讀。
+description: 本專案唯一的顏色規範 — 雙主題（Dark Tech 深色預設／Tech Grey 淺色）token 對照表、已量測過對比度的可用色、以及禁止事項。任何要寫或改 frontend/ 顏色、背景、文字色、邊框、badge、狀態色的工作，動手前必讀。
 ---
 
 # web-color — 顏色規範（BINDING）
@@ -14,18 +14,19 @@ description: 本專案唯一的顏色規範 — 雙主題（Dark Tech 深色預�
 
 ## 1. Token（唯一色票）
 
-| 角色 | 深色（預設） | 淺色（parchment） |
+| 角色 | 深色（預設） | 淺色（Tech Grey） |
 |---|---|---|
-| page bg | `#0f1117` (`dark-bg`) | `#ece3cf` |
-| sidebar / 區塊底 | `#161b27` (`dark-sidebar`) | `#f7f1e1` |
-| card / 面板 | `#1e2535` (`dark-card`) | `#f7f1e1` |
-| raised（input 底） | `#1e2535` | `#fbf7ec` |
-| border | `#2a3347` (`dark-border`) | `#ddd0b3` |
+| page bg | `#0f1117` (`dark-bg`) | `#eaeff5` |
+| sidebar / 區塊底 | `#161b27` (`dark-sidebar`) | `#f9fbfd` |
+| card / 面板 | `#1e2535` (`dark-card`) | `#f9fbfd` |
+| raised（input 底） | `#1e2535` | `#ffffff` |
+| border | `#2a3347` (`dark-border`) | `#d6dfe9` |
 | accent（邊框／focus／底色） | `#00d4ff` (`accent`) | `#00b3d8` |
 | accent 實心按鈕 | `#00d4ff` + `#0f1117` 深字 | `#00b3d8` + `#0f1117` 深字（hover `#0099bb`） |
 
-**淺色沒有純白。** `#ffffff` 只出現在 `.btn-danger` 的文字與紙本輸出（Word/Excel）。
-畫面上要「白色卡片」→ 用 `.card`，或 `bg-white`（`main.css` 已把它改寫成 `#f7f1e1`）。
+淺色是**灰底帶一點藍**，與深色同色溫；`#ffffff` 只用於 input 底、`.btn-danger` 文字與紙本輸出（Word/Excel）。
+畫面上要「白色卡片」→ 用 `.card`，或 `bg-white`（`main.css` 已把它改寫成 `#f9fbfd`）。
+**要換淺色配色只改 `main.css` 開頭註解列出的那幾個值**，不要散在各頁改。
 
 ---
 
@@ -40,14 +41,14 @@ description: 本專案唯一的顏色規範 — 雙主題（Dark Tech 深色預�
 | 弱化／說明 | `dark:text-slate-400` | 5.97 |
 | **禁止** | `dark:text-slate-500`(3.2) `slate-600`(2.0) | 不合格 |
 
-淺色底（`#ece3cf` page / `#f7f1e1` surface）：
+淺色底（`#eaeff5` page / `#f9fbfd` surface）：
 
 | 用途 | class | 對比 |
 |---|---|---|
-| 主要文字 | `text-slate-800` | 11.5 |
-| 次要文字 | `text-slate-700` | 8.1 |
-| 弱化／說明 | `text-slate-600` | 5.9 |
-| **禁止** | `text-slate-500`(3.7) `slate-400`(2.0) | 不合格 |
+| 主要文字 | `text-slate-800` | 12.7 |
+| 次要文字 | `text-slate-700` | 9.0 |
+| 弱化／說明 | `text-slate-600` | 6.6 |
+| **禁止** | `text-slate-500`(4.1) `slate-400`(2.2) | 不合格 |
 
 → **弱化文字的標準寫法一律是 `text-slate-600 dark:text-slate-400`。**
 單寫 `text-slate-500`（現存舊碼中很多）在兩個主題都不合格，看到就順手改掉。
@@ -63,13 +64,13 @@ description: 本專案唯一的顏色規範 — 雙主題（Dark Tech 深色預�
 
 | 語意 | 深色 | 淺色 | 淺色對比 |
 |---|---|---|---|
-| accent 文字／連結 | `dark:text-cyan-400` | `text-cyan-800` | 5.7 |
+| accent 文字／連結 | `dark:text-cyan-400` | `text-cyan-800` | 6.3 |
 | accent 實心按鈕 | `.btn-primary`（亮青底深字） | `.btn-primary`（亮青底深字） | 7.6 |
-| 危險／錯誤文字 | `dark:text-red-400` | `text-red-700` | 5.1 |
+| 危險／錯誤文字 | `dark:text-red-400` | `text-red-700` | 5.6 |
 | 危險按鈕 | `.btn-danger`（`red-600` 白字，hover `red-700`） | 同左 | 4.8 |
-| 警告／INACTIVE | `dark:text-amber-400` | `text-amber-800` | 5.6 |
-| 成功 | `dark:text-emerald-400` | `text-emerald-800` | 6.0 |
-| 連結／ID（`.id-mono`） | `#00d4ff` | `#1d4ed8`（`text-blue-700`） | 5.9 |
+| 警告／INACTIVE | `dark:text-amber-400` | `text-amber-800` | 6.1 |
+| 成功 | `dark:text-emerald-400` | `text-emerald-800` | 6.7 |
+| 連結／ID（`.id-mono`） | `#00d4ff` | `#1d4ed8`（`text-blue-700`） | 5.8 |
 
 **淺色禁止當文字**：`cyan-400/600/700`、`red-400/500/600`、`amber-500/600/700`、
 `emerald-500/600/700`、`blue-600`（皆 < 4.5）。
