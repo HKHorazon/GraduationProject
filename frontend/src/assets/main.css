@@ -64,17 +64,18 @@ html:not(.dark) .stu-change .text-white,
 html:not(.dark) .stu-change .text-slate-200 { color: #1e293b !important; }
 html:not(.dark) .stu-change .text-slate-300 { color: #334155 !important; }
 html:not(.dark) .stu-change .text-slate-500,
-html:not(.dark) .stu-change .text-slate-600 { color: #6b7280 !important; }
-html:not(.dark) .stu-change .placeholder-slate-600::placeholder { color: #9b8e6e !important; }
+html:not(.dark) .stu-change .text-slate-600 { color: #475569 !important; }
+html:not(.dark) .stu-change .placeholder-slate-500::placeholder,
+html:not(.dark) .stu-change .placeholder-slate-600::placeholder { color: #6b7280 !important; }
 
 /* accent (cyan) -> readable on parchment */
 html:not(.dark) .stu-change .text-cyan-300,
 html:not(.dark) .stu-change .text-cyan-400,
-html:not(.dark) .stu-change .text-cyan-500 { color: #0e7490 !important; }
+html:not(.dark) .stu-change .text-cyan-500 { color: #155e75 !important; }
 
 /* inactive (amber) tones */
 html:not(.dark) .stu-change .text-amber-400,
-html:not(.dark) .stu-change .text-amber-500 { color: #b45309 !important; }
+html:not(.dark) .stu-change .text-amber-500 { color: #92400e !important; }
 html:not(.dark) .stu-change .bg-amber-900\/20,
 html:not(.dark) .stu-change .bg-amber-900\/30 { background-color: #fef3c7 !important; }
 html:not(.dark) .stu-change .border-amber-700\/30,
@@ -96,8 +97,9 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
   /* Buttons */
   .btn-primary {
     @apply font-semibold px-4 py-2 rounded-lg transition-all text-sm cursor-pointer;
+    /* 亮青底配深字 = 7.58:1（白字在 #00b3d8 上只有 2.49:1，不可用） */
     background-color: #00b3d8;
-    color: #ffffff;
+    color: #0f1117;
   }
   .btn-primary:hover { background-color: #0099bb; }
   .dark .btn-primary { background-color: #00d4ff; color: #0f1117; }
@@ -117,9 +119,9 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
   .dark .btn-secondary:hover { background-color: #2a3347; }
 
   .btn-danger {
-    @apply bg-red-500 text-white font-semibold px-4 py-2 rounded-lg transition-all text-sm cursor-pointer;
+    @apply bg-red-600 text-white font-semibold px-4 py-2 rounded-lg transition-all text-sm cursor-pointer;
   }
-  .btn-danger:hover { background-color: #dc2626; }
+  .btn-danger:hover { background-color: #b91c1c; }
 
   /* Input */
   .input {
@@ -139,6 +141,6 @@ html:not(.dark) .stu-change .border-amber-700\/50 { border-color: #fcd34d !impor
   .dark .label { color: #cbd5e1; }
 
   /* ID monospace */
-  .id-mono { @apply font-mono text-xs tracking-wide; color: #2563eb; }
+  .id-mono { @apply font-mono text-xs tracking-wide; color: #1d4ed8; }
   .dark .id-mono { color: #00d4ff; }
 }

@@ -132,7 +132,7 @@ function groupActions(g) {
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">組別列表</h2>
-            <p class="text-xs text-slate-500 mt-0.5">共 {{ filteredGroups.length }} 個組別</p>
+            <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">共 {{ filteredGroups.length }} 個組別</p>
           </div>
         </div>
         <div class="flex gap-2 flex-wrap">
@@ -157,19 +157,19 @@ function groupActions(g) {
                   v-for="col in cols"
                   :key="col.key"
                   class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider
-                         text-slate-500 dark:text-slate-400
+                         text-slate-600 dark:text-slate-400
                          hover:text-slate-700 dark:hover:text-slate-200
                          select-none cursor-pointer transition-colors"
                   @click="toggleSort(col.key)"
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <ChevronUp v-if="sortCol === col.key && sortDir === 'asc'" class="w-3 h-3 text-blue-600 dark:text-cyan-400" />
-                    <ChevronDown v-else-if="sortCol === col.key && sortDir === 'desc'" class="w-3 h-3 text-blue-600 dark:text-cyan-400" />
+                    <ChevronUp v-if="sortCol === col.key && sortDir === 'asc'" class="w-3 h-3 text-blue-700 dark:text-cyan-400" />
+                    <ChevronDown v-else-if="sortCol === col.key && sortDir === 'desc'" class="w-3 h-3 text-blue-700 dark:text-cyan-400" />
                     <ChevronsUpDown v-else class="w-3 h-3 opacity-30" />
                   </div>
                 </th>
-                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
                   管理
                 </th>
               </tr>
@@ -180,7 +180,7 @@ function groupActions(g) {
                 :key="g.id"
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
-                <td class="px-3 py-2.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{{ toRoc(g.school_year) }}</td>
+                <td class="px-3 py-2.5 text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">{{ toRoc(g.school_year) }}</td>
                 <td class="px-3 py-2.5 id-mono text-xs whitespace-nowrap"><GroupName :group="g" :label="`第 ${String(g.number).padStart(2, ' ')} 組`" /></td>
                 <td class="px-3 py-2.5 font-medium text-slate-800 dark:text-slate-100 text-sm"><GroupName :group="g" /></td>
                 <td class="px-3 py-2.5 whitespace-nowrap">
@@ -198,10 +198,10 @@ function groupActions(g) {
                       :key="s.id"
                       class="px-1.5 py-0.5 rounded text-xs border"
                       :class="s.id === g.leader_id
-                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700/40 font-medium'
+                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-700/40 font-medium'
                         : 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-100 dark:border-cyan-800/30'"
                     ><StudentName :student="s" /></span>
-                    <span v-if="members(g.id).length === 0" class="text-slate-400 dark:text-slate-600 text-xs">—</span>
+                    <span v-if="members(g.id).length === 0" class="text-slate-600 dark:text-slate-400 text-xs">—</span>
                   </div>
                 </td>
                 <td v-if="auth.isEditor" class="px-4 py-2.5">
@@ -209,14 +209,14 @@ function groupActions(g) {
                 </td>
               </tr>
               <tr v-if="filteredGroups.length === 0">
-                <td :colspan="auth.isEditor ? 7 : 6" class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+                <td :colspan="auth.isEditor ? 7 : 6" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                   找不到符合條件的組別
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="px-4 py-2 text-xs text-slate-400 dark:text-slate-600 border-t border-slate-100 dark:border-[#2a3347]">
+        <div class="px-4 py-2 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-[#2a3347]">
           顯示 {{ filteredGroups.length }} / {{ data.groups.length }} 筆
         </div>
       </div>
@@ -246,7 +246,7 @@ function groupActions(g) {
             </div>
             <form @submit.prevent="saveEditName" class="p-5 space-y-4">
               <div class="space-y-1">
-                <label class="text-xs text-slate-500 dark:text-slate-400">專題名稱</label>
+                <label class="text-xs text-slate-600 dark:text-slate-400">專題名稱</label>
                 <input
                   ref="editNameInput"
                   v-model="editName"
@@ -255,7 +255,7 @@ function groupActions(g) {
                   placeholder="請輸入新的專題名稱"
                 />
               </div>
-              <p v-if="saveError" class="text-xs text-red-500 dark:text-red-400">{{ saveError }}</p>
+              <p v-if="saveError" class="text-xs text-red-700 dark:text-red-400">{{ saveError }}</p>
               <div class="flex gap-2 justify-end">
                 <button
                   type="button"
@@ -269,8 +269,7 @@ function groupActions(g) {
                   type="submit"
                   :disabled="saving"
                   class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
-                         bg-blue-600 dark:bg-cyan-500 text-white
-                         hover:bg-blue-700 dark:hover:bg-cyan-400 disabled:opacity-50"
+                         btn-primary disabled:opacity-50"
                 >{{ saving ? '儲存中…' : '儲存' }}</button>
               </div>
             </form>

@@ -33,9 +33,9 @@ function toggleCollapse() {
   >
     <!-- Logo -->
     <div class="flex items-center gap-3 px-3 h-14 border-b border-slate-200 dark:border-[#2a3347]">
-      <GraduationCap class="w-5 h-5 text-blue-600 dark:text-cyan-400 flex-shrink-0" />
+      <GraduationCap class="w-5 h-5 text-blue-700 dark:text-cyan-400 flex-shrink-0" />
       <span
-        class="font-bold text-blue-600 dark:text-cyan-400 text-sm tracking-wide transition-all duration-150"
+        class="font-bold text-blue-700 dark:text-cyan-400 text-sm tracking-wide transition-all duration-150"
         :class="collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'"
       >畢業專題</span>
     </div>
@@ -83,7 +83,7 @@ function toggleCollapse() {
     <button
       @click="toggleCollapse"
       class="flex items-center justify-center h-10 border-t border-slate-200 dark:border-[#2a3347]
-             text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400
+             text-slate-600 dark:text-slate-400 hover:text-cyan-500 dark:hover:text-cyan-400
              transition-colors text-sm cursor-pointer"
     >
       <ChevronLeft v-if="!collapsed" class="w-4 h-4" />

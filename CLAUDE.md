@@ -120,7 +120,9 @@ Use **history mode** (`createWebHistory`). nginx has SPA fallback (`try_files ..
 
 These rules exist so that any model (Fable / Opus / Sonnet) produces the same output.
 When in doubt, copy the pattern from the reference file named in each rule — do not invent a new pattern.
-Detailed templates live in two project skills: **backend-conventions** and **frontend-conventions**. Read the relevant one before writing code.
+Detailed templates live in project skills — read the relevant one before writing code:
+**backend-conventions**（後端模板）·**frontend-conventions**（前端模板）·
+**web-color**（顏色／對比度）·**web-display**（排版）·**web-excel**（Excel）·**web-docx**（Word）。
 
 ### Language & Domain
 
@@ -133,7 +135,13 @@ Detailed templates live in two project skills: **backend-conventions** and **fro
 
 ### Backend rules (reference files: `routers/students.py`, `routers/groups.py`)
 
-1. **Every mutating endpoint** takes `actor: Account = Depends(require_editor)` (or `require_super_admin`). Read endpoints take no auth.
+1. **Every mutating endpoint** takes `actor: Account = Depends(require_editor)` (or `require_super_admin`).
+   **Read endpoints are never "no auth"** — pick one of three, and state which in the endpoint:
+   - public + masked: `account: Account | None = Depends(get_current_account_optional)`, and when `account is None` return names through `privacy.mask_name` (students, groups);
+   - login required: `Depends(get_current_account)`;
+   - teacher-only: `Depends(require_editor)` — used for anything carrying scores, comments or account data (`reviews`, `accounts`, `audit`).
+
+   Masking is applied on the **Pydantic** object, never on the ORM instance — `StudentOut.model_validate(s).model_copy(update={"name": mask_name(s.name)})`. Mutating the ORM object writes the masked name back to the DB on flush (see the comment in `routers/students.py:62`).
 2. **Audit is two layers, both written before the single `db.commit()`** (helpers in `app/audit.py`):
    - `audit.dblog(...)` — ALWAYS, for every create/update/delete/import, payload = changed fields with old/new values.
    - `audit.event(...)` — ONLY for the semantic events whitelisted in `docs/異動紀錄種類.md` (group_create/rename/teachers/leader/category/delete, student_create/join/move/leave/status, teacher_create). group_id change is translated to join/move/leave; name/class fixes, number/school_year edits, account changes, and hard deletes go to db_logs only. A new event type must be added to that doc in the same change.
@@ -142,6 +150,11 @@ Detailed templates live in two project skills: **backend-conventions** and **fro
 5. Status codes: POST 201, DELETE 204, missing 404, duplicate 409, bad input 400. Error `detail` that a user will see in a form is Traditional Chinese (e.g. `學號 X 已存在`); internal ones stay English (`Student not found`).
 6. Schemas follow the `Base / Create / Update / Out` pattern in `schemas.py` (`from_attributes=True` on Out). New routers register in `main.py` with prefix + tag.
 7. Schema change = Alembic migration in `alembic/versions/` AND `models.py` must stay `metadata.create_all`-able on SQLite for `dev_local.py` (see the `use_alter` note on `Group.leader_id`). Update `seed.py` when shapes change.
+8. **PK generation stays server-side.** Each router keeps a private `_next_num(db)` that scans existing PKs and returns `max+1` (`routers/students.py:44`); the endpoint builds `f"s{_next_num(db)}"` when the body omits `id`. A client-supplied `id` is allowed only after a `db.get(...)` existence check → 409. Never use UUIDs, autoincrement, or `len(rows)+1`.
+9. **Uniqueness is checked in the endpoint, not left to the DB.** `db.scalar(select(Model).where(...))` before insert → 409 with a zh-TW detail naming the value (`學號 {sid} 已存在`). Do not rely on catching `IntegrityError`.
+10. **Bulk import** (`POST /{resource}/bulk`): reject an empty body with 400 `沒有可匯入的資料`; validate every row *before* the first `db.add`, including duplicates *within* the payload (`seen` set); row errors are 1-indexed zh-TW (`第 {i} 列學號 {sid} 重複`). Audit = one `audit.dblog(..., "import", table, None, {"count": n, ...})` plus one `audit.event` per created row. Still one `db.commit()`.
+11. **Routers hold endpoints and their private `_helpers` only.** Anything shared crosses through a module in `app/` (`audit.py`, `privacy.py`, `security.py`, `deps.py`) — a router must never import another router. A helper needed by a second router moves up to `app/` in the same change.
+12. **Response shape is always a schema from `schemas.py`** via `response_model=` — never a hand-built `dict` or a raw ORM object without a declared model. 204 endpoints return `None`.
 
 ### Frontend rules (reference files: `views/StudentsView.vue`, `stores/data.js`)
 
@@ -152,6 +165,10 @@ Detailed templates live in two project skills: **backend-conventions** and **fro
 5. Icons: `lucide-vue-next` only. No new UI/component/CSS libraries.
 6. Styling: Tailwind + the shared component classes in `src/assets/main.css` (`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`). **Every screen must look correct in BOTH themes** — dark is the default (Dark Tech), light is warm parchment (`darkMode: 'class'`). Never build a screen for one theme only.
 
+   **顏色與排版有各自的 skill，動手前必讀 —— 不要靠記憶配色：**
+   - **`web-color`** — 唯一色票、已量測的對比度、禁止事項。摘要：弱化文字一律 `text-slate-600 dark:text-slate-400`；淺色模式的狀態文字用 `-700`/`-800` 級（`cyan-800`/`red-700`/`amber-800`/`emerald-800`/`blue-700`），**亮青 `#00b3d8` 不能當文字也不能配白字**；`.vue` 內禁止原始 hex；每個 `bg-`/`text-`/`border-` 都要有 `dark:` 對子；禁止再加 `main.css` 的 `!important` 補丁。違規用 `node scripts/check-colors.mjs` 掃得出來。
+   - **`web-display`** — 頁面骨架、間距／字級尺標、表格／表單／篩選列／彈窗／空狀態的固定寫法、圖示尺寸、z-index 三階、RWD 檢查點。
+
    | Token | Dark (default) | Light (parchment) |
    |---|---|---|
    | page bg | `#0f1117` | `#ece3cf` |
@@ -161,12 +178,24 @@ Detailed templates live in two project skills: **backend-conventions** and **fro
    | accent | `#00d4ff` cyan (`accent`) | `#00b3d8` / text `#0e7490` |
    | fonts | `font-display` Space Grotesk · `font-sans` DM Sans/Noto Sans TC · `font-mono` Fira Code | same |
 
-   Table headers: `text-[10px] font-mono uppercase tracking-widest text-slate-500`. Badges: 已分組 cyan (`border-cyan-500/40 bg-cyan-400/10 text-cyan-400`), 未分組 slate, INACTIVE amber.
+   Table headers: `text-[10px] font-mono uppercase tracking-widest text-slate-600 dark:text-slate-400`. Badges: 已分組 cyan, 未分組 slate, INACTIVE amber — 兩個主題的完整寫法見 `web-color`。
+
+7. **File generation uses the two libraries already installed**: Excel = `xlsx-js-style` (styling included — never add `sheetjs`/`exceljs`), Word = `docx`. Both have their own binding skill, read it before writing generation code:
+   - **`web-excel`** — 檔名／工作表命名、`!cols` 欄寬、樣式常數、`!merges` 雙層表頭、匯入 `sheet_to_json(ws, { defval: '' })` + 逐列 `_error` 預覽。
+   - **`web-docx`** — **只能用 `WidthType.DXA`**（`PERCENTAGE` 會產生 Word 判定毀損的檔案）、twips 版面換算、中文字型要 `eastAsia`、字級是半點、`tableHeader`/`cantSplit` 跨頁重印、`URL.revokeObjectURL` 必收。
+   - 產出的 Excel/Word 是**紙本**：固定白底黑字，與畫面主題無關。
+8. **Sheet/document layout logic lives in `src/lib/*.js`, not in the view** (`lib/reviewSheet.js`, `lib/attendanceYearDoc.js`), written as pure functions taking a `ctx` — no store, no DOM. The view only gathers state, calls `build…()`, and triggers the download. Such a lib ships one runnable self-check next to it — `lib/test_reviewSheet.mjs` is the pattern: plain `node:assert/strict`, round-trip (build → write → read → parse), run with `node src/lib/test_xxx.mjs`, no test framework.
+9. **Dialogs are hand-rolled in the view**: a `fixed inset-0` overlay + `.card` panel (`AccountsView.vue`, `GroupsView.vue`). No modal component, no dialog library. A destructive action confirms with the native `confirm()` and a zh-TW question that names the object and its side effects (`確定刪除「X」？該審查的所有評分會一併刪除。`).
+10. **Feedback is local refs rendered inline**, next to the action that produced it: `const message = ref('')` / `const error = ref('')`, cleared at the start of each action. No toast library, no global notification store, no `alert()`.
+11. **Every list/table needs an empty state** — a centered row `<td :colspan="n" class="px-4 py-10 text-center text-sm text-slate-400">尚無…</td>`. When a filter is active the text says 沒有符合的… instead of 尚無…, so "no data" and "no match" stay distinguishable.
+12. Imports use the `@/` alias (`@/lib/api`, `@/stores/data`) — no `../../` chains. Pages are flat in `src/views/`; multi-step 異動 flows go in `src/views/changes/`.
 
 ### Definition of Done (run these BEFORE claiming a task complete or committing)
 
-- Frontend touched → `cd frontend && npm run build` must pass.
+- Frontend touched → `cd frontend && npm run build` **and** `node scripts/check-colors.mjs` must both pass.
 - Backend touched → `backend/.venv/Scripts/python.exe -m compileall -q app` must pass, then restart uvicorn (**no `--reload` on Windows** — it hangs) and smoke-test the changed endpoint.
+- `frontend/src/lib/` touched → its self-check must pass (`cd frontend && node src/lib/test_reviewSheet.mjs`); new logic there ships its own.
+- A read endpoint touched → verify it **logged out** as well as logged in (masking / 401 / 403 is the point of rule 1).
 - Full-stack verification: `/ship-local` starts backend (:8000, SQLite) + frontend (:5173).
 - UI checked in both dark and light themes; all visible text zh-TW.
 - No leftover `console.log`/debug prints; no secrets in the diff.

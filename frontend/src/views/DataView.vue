@@ -321,10 +321,10 @@ function downloadTemplate() {
   <AppLayout>
     <div v-if="!auth.isEditor" class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <div v-else class="w-full space-y-5">
@@ -336,8 +336,8 @@ function downloadTemplate() {
           v-for="t in TABS" :key="t.key" @click="tab = t.key"
           class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors cursor-pointer whitespace-nowrap"
           :class="tab === t.key
-            ? 'border-blue-500 dark:border-cyan-400 text-blue-600 dark:text-cyan-400'
-            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+            ? 'border-blue-500 dark:border-cyan-400 text-blue-700 dark:text-cyan-400'
+            : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
         >
           <component :is="t.icon" class="w-4 h-4" /> {{ t.label }}
         </button>
@@ -348,32 +348,32 @@ function downloadTemplate() {
         <!-- stat cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="card p-5">
-            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+            <div class="flex items-center gap-2 text-slate-600 text-xs mb-1 dark:text-slate-400">
               <Users class="w-4 h-4" /> 學生總數
             </div>
             <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.students }}</p>
-            <p class="text-xs text-slate-400 mt-1">在學 {{ stats.active }}・休退 {{ stats.inactive }}</p>
+            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">在學 {{ stats.active }}・休退 {{ stats.inactive }}</p>
           </div>
           <div class="card p-5">
-            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+            <div class="flex items-center gap-2 text-slate-600 text-xs mb-1 dark:text-slate-400">
               <LayoutList class="w-4 h-4" /> 組別總數
             </div>
             <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.groups }}</p>
-            <p class="text-xs text-slate-400 mt-1">已分組 {{ stats.grouped }}・未分組 {{ stats.ungrouped }}</p>
+            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">已分組 {{ stats.grouped }}・未分組 {{ stats.ungrouped }}</p>
           </div>
           <div class="card p-5">
-            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+            <div class="flex items-center gap-2 text-slate-600 text-xs mb-1 dark:text-slate-400">
               <GraduationCap class="w-4 h-4" /> 老師總數
             </div>
             <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.teachers }}</p>
-            <p class="text-xs text-slate-400 mt-1">指導老師</p>
+            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">指導老師</p>
           </div>
           <div class="card p-5">
-            <div class="flex items-center gap-2 text-slate-400 text-xs mb-1">
+            <div class="flex items-center gap-2 text-slate-600 text-xs mb-1 dark:text-slate-400">
               <LayoutDashboard class="w-4 h-4" /> 學年度數
             </div>
             <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.years }}</p>
-            <p class="text-xs text-slate-400 mt-1">涵蓋學年</p>
+            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">涵蓋學年</p>
           </div>
         </div>
 
@@ -384,7 +384,7 @@ function downloadTemplate() {
               <p class="text-sm font-medium text-slate-600 dark:text-slate-300">各學年度統計</p>
             </div>
             <table class="w-full text-sm">
-              <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-400">
+              <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-600 dark:text-slate-400">
                 <tr>
                   <th class="text-left px-5 py-2 font-medium">學年度</th>
                   <th class="text-left px-3 py-2 font-medium">學生數</th>
@@ -398,7 +398,7 @@ function downloadTemplate() {
                   <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ r.groups }}</td>
                 </tr>
                 <tr v-if="!byYear.length">
-                  <td colspan="3" class="px-5 py-8 text-center text-sm text-slate-400">尚無資料</td>
+                  <td colspan="3" class="px-5 py-8 text-center text-sm text-slate-600 dark:text-slate-400">尚無資料</td>
                 </tr>
               </tbody>
             </table>
@@ -406,7 +406,7 @@ function downloadTemplate() {
 
           <div class="card p-5 space-y-3">
             <p class="text-sm font-medium text-slate-600 dark:text-slate-300">匯出資料</p>
-            <p class="text-xs text-slate-400">將目前資料匯出為 Excel 檔案，方便備份或交接。</p>
+            <p class="text-xs text-slate-600 dark:text-slate-400">將目前資料匯出為 Excel 檔案，方便備份或交接。</p>
             <button class="btn-secondary w-full flex items-center justify-center gap-1.5" @click="exportStudents">
               <Download class="w-4 h-4" /> 匯出學生（{{ stats.students }}）
             </button>
@@ -422,11 +422,11 @@ function downloadTemplate() {
         <form @submit.prevent="submitStudent" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">學號 <span class="text-red-400">*</span></label>
+              <label class="label">學號 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="sForm.student_id" class="input" placeholder="例如 A12345" />
             </div>
             <div>
-              <label class="label">姓名 <span class="text-red-400">*</span></label>
+              <label class="label">姓名 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="sForm.name" class="input" placeholder="王小明" />
             </div>
             <div>
@@ -435,20 +435,20 @@ function downloadTemplate() {
               <datalist id="dv-classes"><option v-for="c in classes" :key="c" :value="c" /></datalist>
             </div>
             <div>
-              <label class="label">學年度 <span class="text-red-400">*</span></label>
+              <label class="label">學年度 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="sForm.school_year" list="dv-years" class="input" placeholder="114" />
               <datalist id="dv-years"><option v-for="y in years" :key="y" :value="y" /></datalist>
             </div>
           </div>
-          <p v-if="sError" class="text-xs text-red-500">{{ sError }}</p>
-          <p v-if="sOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ sOk }}</p>
+          <p v-if="sError" class="text-xs text-red-700 dark:text-red-400">{{ sError }}</p>
+          <p v-if="sOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ sOk }}</p>
           <div class="flex justify-end">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="sBusy">
               <UserPlus class="w-4 h-4" /> {{ sBusy ? '新增中…' : '新增學生' }}
             </button>
           </div>
         </form>
-        <p class="text-xs text-slate-400 mt-3">新增的學生預設為未分組，分組請至「學生更動」頁面操作。</p>
+        <p class="text-xs text-slate-600 mt-3 dark:text-slate-400">新增的學生預設為未分組，分組請至「學生更動」頁面操作。</p>
       </div>
 
       <!-- 新增組別 -->
@@ -456,15 +456,15 @@ function downloadTemplate() {
         <form @submit.prevent="submitGroup" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">學年度 <span class="text-red-400">*</span></label>
+              <label class="label">學年度 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="gForm.school_year" list="dv-years" class="input" placeholder="114" />
             </div>
             <div>
-              <label class="label">組號 <span class="text-red-400">*</span></label>
+              <label class="label">組號 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="gForm.number" type="number" min="1" class="input" placeholder="1" />
             </div>
             <div class="col-span-2">
-              <label class="label">專題名稱 <span class="text-red-400">*</span></label>
+              <label class="label">專題名稱 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="gForm.name" class="input" placeholder="專題主題 / 名稱" />
             </div>
             <div class="col-span-2">
@@ -482,22 +482,22 @@ function downloadTemplate() {
                 class="px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer"
                 :class="gForm.teacher_ids.includes(t.id)
                   ? 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-200 dark:border-cyan-800/40'
-                  : 'bg-slate-100 dark:bg-[#2a3347] text-slate-500 dark:text-slate-400 border-transparent hover:border-slate-300 dark:hover:border-slate-600'"
+                  : 'bg-slate-100 dark:bg-[#2a3347] text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-300 dark:hover:border-slate-600'"
               >
                 {{ t.name }}
               </button>
-              <span v-if="!data.teachers.length" class="text-xs text-slate-400">尚無老師，請先至「新增老師」建立。</span>
+              <span v-if="!data.teachers.length" class="text-xs text-slate-600 dark:text-slate-400">尚無老師，請先至「新增老師」建立。</span>
             </div>
           </div>
-          <p v-if="gError" class="text-xs text-red-500">{{ gError }}</p>
-          <p v-if="gOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ gOk }}</p>
+          <p v-if="gError" class="text-xs text-red-700 dark:text-red-400">{{ gError }}</p>
+          <p v-if="gOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ gOk }}</p>
           <div class="flex justify-end">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="gBusy">
               <FolderPlus class="w-4 h-4" /> {{ gBusy ? '新增中…' : '新增組別' }}
             </button>
           </div>
         </form>
-        <p class="text-xs text-slate-400 mt-3">建立後可至「組別列表」檢視，組員與組長指定請至「組別異動」頁面操作。</p>
+        <p class="text-xs text-slate-600 mt-3 dark:text-slate-400">建立後可至「組別列表」檢視，組員與組長指定請至「組別異動」頁面操作。</p>
       </div>
 
       <!-- 批次匯入 -->
@@ -508,27 +508,27 @@ function downloadTemplate() {
             <button class="btn-secondary flex items-center gap-1.5" @click="fileInput?.click()">
               <FileSpreadsheet class="w-4 h-4" /> 選擇 Excel / CSV
             </button>
-            <span v-if="bulkFileName" class="text-xs text-slate-500 flex items-center gap-1">
+            <span v-if="bulkFileName" class="text-xs text-slate-600 flex items-center gap-1 dark:text-slate-400">
               {{ bulkFileName }}
-              <button @click="clearBulk" class="text-slate-400 hover:text-red-500 cursor-pointer"><X class="w-3.5 h-3.5" /></button>
+              <button @click="clearBulk" class="text-slate-600 hover:text-red-500 cursor-pointer dark:text-slate-400"><X class="w-3.5 h-3.5" /></button>
             </span>
           </div>
-          <button class="text-xs text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer" @click="downloadTemplate">
+          <button class="text-xs text-blue-700 dark:text-cyan-400 hover:underline cursor-pointer" @click="downloadTemplate">
             下載範本
           </button>
         </div>
 
-        <p class="text-xs text-slate-400">
+        <p class="text-xs text-slate-600 dark:text-slate-400">
           欄位：學號、姓名、班級、學年度、狀態（在學/休退學）。學號、姓名、學年度為必填。
         </p>
 
-        <p v-if="bulkError" class="text-xs text-red-500">{{ bulkError }}</p>
+        <p v-if="bulkError" class="text-xs text-red-700 dark:text-red-400">{{ bulkError }}</p>
 
         <div v-if="bulkRows.length" class="border border-slate-200 dark:border-[#2a3347] rounded-lg overflow-hidden">
           <div class="max-h-96 overflow-auto">
             <table class="w-full text-sm">
               <thead class="bg-slate-50 dark:bg-[#161b27] sticky top-0">
-                <tr class="text-xs text-slate-400">
+                <tr class="text-xs text-slate-600 dark:text-slate-400">
                   <th class="text-left px-3 py-2">#</th>
                   <th class="text-left px-3 py-2">學號</th>
                   <th class="text-left px-3 py-2">姓名</th>
@@ -539,14 +539,14 @@ function downloadTemplate() {
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-[#2a3347]">
                 <tr v-for="(r, i) in bulkRows" :key="i" :class="r._error ? 'bg-red-50 dark:bg-red-900/10' : ''">
-                  <td class="px-3 py-1.5 text-slate-400 text-xs">{{ i + 1 }}</td>
+                  <td class="px-3 py-1.5 text-slate-600 text-xs dark:text-slate-400">{{ i + 1 }}</td>
                   <td class="px-3 py-1.5 id-mono">{{ r.student_id }}</td>
                   <td class="px-3 py-1.5">{{ r.name }}</td>
-                  <td class="px-3 py-1.5 text-slate-500">{{ r.class_ }}</td>
-                  <td class="px-3 py-1.5 text-slate-500">{{ r.school_year }}</td>
+                  <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">{{ r.class_ }}</td>
+                  <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">{{ r.school_year }}</td>
                   <td class="px-3 py-1.5 text-xs">
-                    <span v-if="r._error" class="text-red-500">{{ r._error }}</span>
-                    <span v-else class="text-emerald-600 dark:text-emerald-400">OK</span>
+                    <span v-if="r._error" class="text-red-700 dark:text-red-400">{{ r._error }}</span>
+                    <span v-else class="text-emerald-800 dark:text-emerald-400">OK</span>
                   </td>
                 </tr>
               </tbody>
@@ -555,27 +555,27 @@ function downloadTemplate() {
         </div>
 
         <div v-if="bulkRows.length" class="flex items-center justify-between">
-          <p class="text-xs text-slate-500">
-            可匯入 <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ validRows.length }}</span> 筆
-            <span v-if="hasErrors" class="text-red-500">・{{ bulkRows.length - validRows.length }} 筆有誤(將略過)</span>
+          <p class="text-xs text-slate-600 dark:text-slate-400">
+            可匯入 <span class="font-semibold text-emerald-800 dark:text-emerald-400">{{ validRows.length }}</span> 筆
+            <span v-if="hasErrors" class="text-red-700 dark:text-red-400">・{{ bulkRows.length - validRows.length }} 筆有誤(將略過)</span>
           </p>
           <button class="btn-primary flex items-center gap-1.5" :disabled="!validRows.length || bulkBusy" @click="importBulk">
             <Upload class="w-4 h-4" /> {{ bulkBusy ? '匯入中…' : `匯入 ${validRows.length} 筆` }}
           </button>
         </div>
 
-        <p v-if="bulkOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ bulkOk }}</p>
+        <p v-if="bulkOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ bulkOk }}</p>
       </div>
 
       <!-- 新增老師 -->
       <div v-show="tab === 'teacher'" class="card p-6 max-w-3xl">
         <form @submit.prevent="submitTeacher" class="space-y-4">
           <div>
-            <label class="label">老師姓名 <span class="text-red-400">*</span></label>
+            <label class="label">老師姓名 <span class="text-red-700 dark:text-red-400">*</span></label>
             <input v-model="tName" class="input" placeholder="陳老師" />
           </div>
-          <p v-if="tError" class="text-xs text-red-500">{{ tError }}</p>
-          <p v-if="tOk" class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ tOk }}</p>
+          <p v-if="tError" class="text-xs text-red-700 dark:text-red-400">{{ tError }}</p>
+          <p v-if="tOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ tOk }}</p>
           <div class="flex justify-end">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="tBusy">
               <GraduationCap class="w-4 h-4" /> {{ tBusy ? '新增中…' : '新增老師' }}
@@ -584,7 +584,7 @@ function downloadTemplate() {
         </form>
 
         <div class="mt-5 pt-4 border-t border-slate-100 dark:border-[#2a3347]">
-          <p class="text-xs text-slate-400 mb-2">目前老師（{{ data.teachers.length }}）</p>
+          <p class="text-xs text-slate-600 mb-2 dark:text-slate-400">目前老師（{{ data.teachers.length }}）</p>
           <div class="flex flex-wrap gap-2">
             <span v-for="t in data.teachers" :key="t.id"
                   class="px-2.5 py-1 rounded-full text-sm bg-slate-100 dark:bg-[#2a3347] text-slate-600 dark:text-slate-300">

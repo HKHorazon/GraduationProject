@@ -135,7 +135,7 @@ function studentActions(s) {
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">學生列表</h2>
-            <p class="text-xs text-slate-500 mt-0.5">共 {{ filtered.length }} 位學生</p>
+            <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">共 {{ filtered.length }} 位學生</p>
           </div>
         </div>
         <div class="flex gap-2 flex-wrap">
@@ -176,19 +176,19 @@ function studentActions(s) {
                   v-for="col in cols"
                   :key="col.key"
                   class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider
-                         text-slate-500 dark:text-slate-400
+                         text-slate-600 dark:text-slate-400
                          hover:text-slate-700 dark:hover:text-slate-200
                          select-none cursor-pointer transition-colors"
                   @click="toggleSort(col.key)"
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <ChevronUp v-if="sortCol === col.key && sortDir === 'asc'" class="w-3 h-3 text-blue-600 dark:text-cyan-400" />
-                    <ChevronDown v-else-if="sortCol === col.key && sortDir === 'desc'" class="w-3 h-3 text-blue-600 dark:text-cyan-400" />
+                    <ChevronUp v-if="sortCol === col.key && sortDir === 'asc'" class="w-3 h-3 text-blue-700 dark:text-cyan-400" />
+                    <ChevronDown v-else-if="sortCol === col.key && sortDir === 'desc'" class="w-3 h-3 text-blue-700 dark:text-cyan-400" />
                     <ChevronsUpDown v-else class="w-3 h-3 opacity-30" />
                   </div>
                 </th>
-                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
                   管理
                 </th>
               </tr>
@@ -202,12 +202,12 @@ function studentActions(s) {
                 <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
                 <td class="px-4 py-3 font-medium"
-                    :class="s.status !== 'active' ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
+                    :class="s.status !== 'active' ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
                   <StudentName :student="s" />
                   <span v-if="s.status !== 'active'"
                         class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium
                                border border-red-300 dark:border-red-700/50
-                               bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">休學</span>
+                               bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">休學</span>
                 </td>
                 <td class="px-4 py-3">
                   <span v-if="s.group_id" class="flex items-center gap-1">
@@ -222,12 +222,12 @@ function studentActions(s) {
                       v-if="getGroup(s.group_id)?.leader_id === s.id"
                       class="px-1.5 py-0.5 rounded text-xs font-medium
                              bg-amber-50 dark:bg-amber-900/20
-                             text-amber-600 dark:text-amber-400
+                             text-amber-800 dark:text-amber-400
                              border border-amber-200 dark:border-amber-700/40"
                       title="組長"
                     >★ 組長</span>
                   </span>
-                  <span v-else class="text-slate-400 dark:text-slate-600 text-xs">未分組</span>
+                  <span v-else class="text-slate-600 dark:text-slate-400 text-xs">未分組</span>
                 </td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getTeacherNames(s.group_id) }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getGroup(s.group_id)?.category ?? '—' }}</td>
@@ -240,14 +240,14 @@ function studentActions(s) {
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td :colspan="auth.isEditor ? 8 : 7" class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+                <td :colspan="auth.isEditor ? 8 : 7" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                   找不到符合條件的學生
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="px-4 py-2 text-xs text-slate-400 dark:text-slate-600 border-t border-slate-100 dark:border-[#2a3347]">
+        <div class="px-4 py-2 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-[#2a3347]">
           顯示 {{ filtered.length }} / {{ data.students.length }} 筆
         </div>
       </div>

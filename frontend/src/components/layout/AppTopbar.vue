@@ -145,7 +145,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
         class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer
                bg-slate-100 dark:bg-[#1e2535]
                border border-slate-200 dark:border-[#2a3347]
-               text-slate-500 dark:text-slate-400
+               text-slate-600 dark:text-slate-400
                hover:border-blue-400 dark:hover:border-cyan-400 hover:text-blue-600 dark:hover:text-cyan-400"
         :title="theme.isDark ? '切換淺色模式' : '切換深色模式'"
       >
@@ -172,7 +172,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
               <span class="text-xs text-slate-600 dark:text-slate-300 font-mono max-w-[140px] truncate">
                 {{ auth.user?.username ?? auth.role.toUpperCase() }}
               </span>
-              <ChevronDown class="w-3 h-3 text-slate-400 transition-transform"
+              <ChevronDown class="w-3 h-3 text-slate-600 transition-transform dark:text-slate-400"
                            :class="pwdOpen ? 'rotate-180' : ''" />
             </button>
 
@@ -195,12 +195,12 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                             border-b border-slate-100 dark:border-[#2a3347]">
                   <span class="text-sm font-semibold text-slate-700 dark:text-slate-200
                                flex items-center gap-1.5">
-                    <KeyRound class="w-4 h-4 text-blue-600 dark:text-cyan-400" /> 修改密碼
+                    <KeyRound class="w-4 h-4 text-blue-700 dark:text-cyan-400" /> 修改密碼
                   </span>
                   <button
                     @click="closePwdPanel"
                     class="w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer
-                           text-slate-400 dark:text-slate-500
+                           text-slate-600 dark:text-slate-400
                            hover:text-slate-600 dark:hover:text-slate-300
                            hover:bg-slate-100 dark:hover:bg-[#2a3347]"
                   >
@@ -210,7 +210,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 
                 <form @submit.prevent="handleChangePassword" class="p-4 space-y-3">
                   <div class="space-y-1">
-                    <label class="text-xs text-slate-500 dark:text-slate-400">舊密碼</label>
+                    <label class="text-xs text-slate-600 dark:text-slate-400">舊密碼</label>
                     <input
                       v-model="oldPwd"
                       type="password"
@@ -221,7 +221,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs text-slate-500 dark:text-slate-400">新密碼（至少 6 個字元）</label>
+                    <label class="text-xs text-slate-600 dark:text-slate-400">新密碼（至少 6 個字元）</label>
                     <input
                       v-model="newPwd"
                       type="password"
@@ -232,7 +232,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs text-slate-500 dark:text-slate-400">確認新密碼</label>
+                    <label class="text-xs text-slate-600 dark:text-slate-400">確認新密碼</label>
                     <input
                       v-model="confirmPwd"
                       type="password"
@@ -243,16 +243,15 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                     />
                   </div>
 
-                  <p v-if="pwdError" class="text-xs text-red-500 dark:text-red-400">{{ pwdError }}</p>
-                  <p v-if="pwdSuccess" class="text-xs text-emerald-600 dark:text-emerald-400">密碼已更新</p>
+                  <p v-if="pwdError" class="text-xs text-red-700 dark:text-red-400">{{ pwdError }}</p>
+                  <p v-if="pwdSuccess" class="text-xs text-emerald-800 dark:text-emerald-400">密碼已更新</p>
 
                   <button
                     type="submit"
                     :disabled="pwdLoading || pwdSuccess"
                     class="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium
                            transition-colors cursor-pointer
-                           bg-blue-600 dark:bg-cyan-500 text-white
-                           hover:bg-blue-700 dark:hover:bg-cyan-400
+                           btn-primary
                            disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Loader2 v-if="pwdLoading" class="w-4 h-4 animate-spin" />
@@ -268,7 +267,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
                    bg-slate-100 dark:bg-[#1e2535]
                    border border-slate-200 dark:border-[#2a3347]
-                   text-slate-500 dark:text-slate-400
+                   text-slate-600 dark:text-slate-400
                    hover:border-red-400 dark:hover:border-red-400 hover:text-red-500 dark:hover:text-red-400"
           >
             <LogOut class="w-3.5 h-3.5" />
@@ -281,8 +280,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
           v-else
           @click="openLogin"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
-                 bg-blue-600 dark:bg-cyan-500 text-white
-                 hover:bg-blue-700 dark:hover:bg-cyan-400"
+                 btn-primary"
         >
           <LogIn class="w-3.5 h-3.5" />
           登入
@@ -310,7 +308,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
               <button
                 @click="closeLogin"
                 class="w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer
-                       text-slate-400 dark:text-slate-500
+                       text-slate-600 dark:text-slate-400
                        hover:text-slate-600 dark:hover:text-slate-300
                        hover:bg-slate-100 dark:hover:bg-[#2a3347]"
               >
@@ -321,7 +319,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
             <!-- Form -->
             <form @submit.prevent="handleLogin" class="p-4 space-y-3">
               <div class="space-y-1">
-                <label class="text-xs text-slate-500 dark:text-slate-400">帳號</label>
+                <label class="text-xs text-slate-600 dark:text-slate-400">帳號</label>
                 <input
                   v-model="loginEmail"
                   type="text"
@@ -332,7 +330,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 />
               </div>
               <div class="space-y-1">
-                <label class="text-xs text-slate-500 dark:text-slate-400">密碼</label>
+                <label class="text-xs text-slate-600 dark:text-slate-400">密碼</label>
                 <input
                   v-model="loginPassword"
                   type="password"
@@ -344,7 +342,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
               </div>
 
               <!-- Error -->
-              <p v-if="loginError" class="text-xs text-red-500 dark:text-red-400">{{ loginError }}</p>
+              <p v-if="loginError" class="text-xs text-red-700 dark:text-red-400">{{ loginError }}</p>
 
               <!-- Submit -->
               <button
@@ -352,8 +350,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 :disabled="loginLoading"
                 class="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium
                        transition-colors cursor-pointer
-                       bg-blue-600 dark:bg-cyan-500 text-white
-                       hover:bg-blue-700 dark:hover:bg-cyan-400
+                       btn-primary
                        disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Loader2 v-if="loginLoading" class="w-4 h-4 animate-spin" />

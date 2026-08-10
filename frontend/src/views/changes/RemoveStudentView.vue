@@ -140,9 +140,9 @@ const TABS = [
 ]
 
 const TAB_ACTIVE_CLASS = {
-  cyan:   'border-cyan-400 text-cyan-400 bg-cyan-400/5',
+  cyan:   'border-cyan-400 text-cyan-800 bg-cyan-400/5 dark:text-cyan-400',
   orange: 'border-orange-400 text-orange-400 bg-orange-400/5',
-  red:    'border-red-400 text-red-400 bg-red-400/5',
+  red:    'border-red-400 text-red-700 bg-red-400/5 dark:text-red-400',
 }
 
 function clickTab(tab) {
@@ -219,10 +219,10 @@ async function confirmWithdraw() {
     <div v-if="!auth.isEditor"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <!-- stu-change: light-mode parchment overrides are scoped to this class in main.css -->
@@ -239,19 +239,19 @@ async function confirmWithdraw() {
               學生更動
             </h2>
           </div>
-          <p class="text-xs text-slate-500 pl-3">搜尋並選取學生以調整其組別</p>
+          <p class="text-xs text-slate-600 pl-3 dark:text-slate-400">搜尋並選取學生以調整其組別</p>
         </div>
 
         <!-- Search input (large) -->
         <div class="relative group">
-          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors pointer-events-none" />
+          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors pointer-events-none dark:text-slate-400" />
           <input
             v-model="query"
             type="text"
             placeholder="搜尋學號 / 姓名 / 老師…"
             class="w-full pl-12 pr-10 py-4 text-base rounded-xl outline-none transition-all duration-200
                    bg-white dark:bg-dark-card border border-slate-300 dark:border-dark-border
-                   text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600
+                   text-slate-800 dark:text-slate-200 placeholder-slate-500 dark:placeholder-slate-600
                    focus:border-cyan-500 focus:shadow-[0_0_0_1px_rgba(34,211,238,0.2),0_0_12px_rgba(34,211,238,0.1)]
                    font-mono tracking-wide"
           />
@@ -259,7 +259,7 @@ async function confirmWithdraw() {
             v-if="query"
             @click="clearSearch"
             class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center
-                   rounded text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400
+                   rounded text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-400
                    hover:bg-slate-100 dark:hover:bg-dark-border transition-colors cursor-pointer"
           >
             <X class="w-4 h-4" />
@@ -268,14 +268,14 @@ async function confirmWithdraw() {
 
         <!-- No results -->
         <div v-if="query && results.length === 0"
-             class="text-center py-8 text-xs text-slate-500 tracking-wider">
+             class="text-center py-8 text-xs text-slate-600 tracking-wider dark:text-slate-400">
           — 找不到「{{ query }}」—
         </div>
 
         <!-- Results -->
         <div v-if="results.length > 0" class="flex flex-col min-h-0 flex-1">
-          <p class="text-[11px] font-mono text-slate-500 tracking-wider px-1 mb-2 flex-shrink-0">
-            搜尋到 {{ results.length }} 筆結果<span v-if="results.length > RESULT_LIMIT" class="text-slate-400 dark:text-slate-600">，只顯示前 {{ RESULT_LIMIT }} 筆</span>
+          <p class="text-[11px] font-mono text-slate-600 tracking-wider px-1 mb-2 flex-shrink-0 dark:text-slate-400">
+            搜尋到 {{ results.length }} 筆結果<span v-if="results.length > RESULT_LIMIT" class="text-slate-600 dark:text-slate-400">，只顯示前 {{ RESULT_LIMIT }} 筆</span>
           </p>
           <div class="flex flex-col gap-2 overflow-y-auto pr-1">
             <button
@@ -298,19 +298,19 @@ async function confirmWithdraw() {
                 <!-- LEFT: 名字 / 學號 -->
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium truncate"
-                     :class="s.status === 'inactive' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'">
+                     :class="s.status === 'inactive' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-slate-200'">
                     {{ s.name }}
                   </p>
-                  <p class="text-xs font-mono text-slate-500 tracking-wider truncate">{{ s.student_id }}</p>
+                  <p class="text-xs font-mono text-slate-600 tracking-wider truncate dark:text-slate-400">{{ s.student_id }}</p>
                 </div>
 
                 <!-- MIDDLE: 學年+班級 / 指導老師 -->
                 <div class="min-w-0 max-w-[42%] flex flex-col items-end gap-0.5 text-right">
                   <p class="text-xs truncate w-full"
-                     :class="s.status === 'inactive' ? 'text-slate-400 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'">
+                     :class="s.status === 'inactive' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600 dark:text-slate-300'">
                     {{ rocYear(s.school_year) }}{{ s.class_ || '' }}
                   </p>
-                  <p class="text-[11px] text-slate-500 truncate w-full">
+                  <p class="text-[11px] text-slate-600 truncate w-full dark:text-slate-400">
                     {{ getStudentTeacherNames(s).trim() || '—' }}
                   </p>
                 </div>
@@ -319,12 +319,12 @@ async function confirmWithdraw() {
                 <div class="w-11 h-9 rounded-lg flex items-center justify-center flex-shrink-0
                             text-sm font-display font-bold leading-none text-center border"
                      :class="s.status === 'inactive'
-                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 border-amber-300 dark:border-amber-700/40'
+                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-500 border-amber-300 dark:border-amber-700/40'
                        : s.group_id
                          ? (selected?.id === s.id
-                             ? 'bg-cyan-400/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/40'
-                             : 'bg-slate-100 dark:bg-dark-border text-cyan-600 dark:text-cyan-400 border-slate-200 dark:border-dark-border')
-                         : 'bg-slate-100 dark:bg-dark-border text-slate-500 border-slate-200 dark:border-dark-border'">
+                             ? 'bg-cyan-400/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/40'
+                             : 'bg-slate-100 dark:bg-dark-border text-cyan-800 dark:text-cyan-400 border-slate-200 dark:border-dark-border')
+                         : 'bg-slate-100 dark:bg-dark-border text-slate-600 dark:text-slate-400 border-slate-200 dark:border-dark-border'">
                   {{ s.status === 'inactive' ? '休退' : (s.group_id ? groupNumber(s.group_id) : '—') }}
                 </div>
               </div>
@@ -342,9 +342,9 @@ async function confirmWithdraw() {
                     border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
           <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-dark-card border border-slate-200 dark:border-dark-border
                       flex items-center justify-center">
-            <Search class="w-5 h-5 text-slate-400 dark:text-slate-600" />
+            <Search class="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </div>
-          <p class="text-xs text-slate-400 dark:text-slate-600 tracking-widest font-mono uppercase">SELECT A STUDENT</p>
+          <p class="text-xs text-slate-600 dark:text-slate-400 tracking-widest font-mono uppercase">SELECT A STUDENT</p>
         </div>
 
         <template v-else>
@@ -357,7 +357,7 @@ async function confirmWithdraw() {
             <!-- Inactive banner -->
             <div v-if="isInactive"
                  class="flex items-center gap-2 px-4 py-2 text-xs font-mono tracking-wider
-                        bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30 text-amber-600 dark:text-amber-400">
+                        bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30 text-amber-800 dark:text-amber-400">
               <UserX class="w-3.5 h-3.5" />
               INACTIVE — 此學生已休退學，無法調整組別
             </div>
@@ -369,13 +369,13 @@ async function confirmWithdraw() {
                   <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
                               text-base font-display font-bold border"
                        :class="isInactive
-                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700/50'
-                         : 'bg-cyan-50 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/30 shadow-[0_0_12px_rgba(34,211,238,0.15)]'">
+                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 border-amber-300 dark:border-amber-700/50'
+                         : 'bg-cyan-50 dark:bg-cyan-400/10 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/30 shadow-[0_0_12px_rgba(34,211,238,0.15)]'">
                     {{ selected.name[0] }}
                   </div>
                   <div>
                     <p class="font-display font-semibold text-slate-900 dark:text-white text-base leading-tight">{{ selected.name }}</p>
-                    <p class="text-xs font-mono text-slate-500 mt-0.5 tracking-wider">
+                    <p class="text-xs font-mono text-slate-600 mt-0.5 tracking-wider dark:text-slate-400">
                       {{ selected.student_id }} · {{ yearClass(selected.school_year, selected.class_) }}
                     </p>
                   </div>
@@ -385,13 +385,13 @@ async function confirmWithdraw() {
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <span v-if="isInactive"
                         class="text-[10px] font-mono px-2 py-1 rounded border tracking-wider
-                               border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
+                               border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400">
                     INACTIVE
                   </span>
                   <span class="text-[10px] font-mono px-2 py-1 rounded border tracking-wider"
                         :class="currentGroup
-                          ? 'border-cyan-400/40 bg-cyan-50 dark:bg-cyan-400/8 text-cyan-600 dark:text-cyan-400'
-                          : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-dark-border/50 text-slate-500'">
+                          ? 'border-cyan-400/40 bg-cyan-50 dark:bg-cyan-400/8 text-cyan-800 dark:text-cyan-400'
+                          : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-dark-border/50 text-slate-600 dark:text-slate-400'">
                     {{ currentGroup ? `GROUP ${currentGroup.number}` : 'UNASSIGNED' }}
                   </span>
                 </div>
@@ -401,33 +401,33 @@ async function confirmWithdraw() {
               <div v-if="currentGroup"
                    class="mt-3 rounded-lg bg-slate-50 dark:bg-[#0f1520] border border-slate-200 dark:border-dark-border/60 overflow-hidden">
                 <div class="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-dark-border/60">
-                  <span class="text-[11px] font-mono text-cyan-600 dark:text-cyan-500 flex-shrink-0">第 {{ currentGroup.number }} 組</span>
-                  <ChevronRight class="w-3 h-3 text-slate-400 dark:text-slate-600 flex-shrink-0" />
+                  <span class="text-[11px] font-mono text-cyan-800 dark:text-cyan-500 flex-shrink-0">第 {{ currentGroup.number }} 組</span>
+                  <ChevronRight class="w-3 h-3 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                   <p class="text-sm text-slate-800 dark:text-slate-200 font-medium truncate flex-1"><GroupName :group="currentGroup" /></p>
                   <span v-if="currentGroup.category"
                         class="text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0
-                               border border-cyan-400/30 bg-cyan-50 dark:bg-cyan-400/5 text-cyan-600 dark:text-cyan-400">
+                               border border-cyan-400/30 bg-cyan-50 dark:bg-cyan-400/5 text-cyan-800 dark:text-cyan-400">
                     {{ currentGroup.category }}
                   </span>
                 </div>
 
                 <div class="px-3 py-2.5 space-y-2">
                   <div class="flex items-start gap-2 text-xs">
-                    <GraduationCap class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 mt-px flex-shrink-0" />
+                    <GraduationCap class="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 mt-px flex-shrink-0" />
                     <div class="min-w-0">
-                      <span class="text-slate-500 font-mono">指導老師：</span>
+                      <span class="text-slate-600 font-mono dark:text-slate-400">指導老師：</span>
                       <span class="text-slate-700 dark:text-slate-300">{{ getTeacherNames(currentGroup) }}</span>
                     </div>
                   </div>
 
                   <div class="flex items-start gap-2 text-xs">
-                    <Users class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 mt-px flex-shrink-0" />
+                    <Users class="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 mt-px flex-shrink-0" />
                     <div class="min-w-0 flex-1">
-                      <span class="text-slate-500 font-mono">組員（{{ groupMembers(currentGroup.id).length }}）：</span>
+                      <span class="text-slate-600 font-mono dark:text-slate-400">組員（{{ groupMembers(currentGroup.id).length }}）：</span>
                       <template v-for="(m, i) in groupMembers(currentGroup.id)" :key="m.id"><span :class="[
-                          m.id === currentGroup.leader_id ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300',
+                          m.id === currentGroup.leader_id ? 'text-amber-800 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300',
                           m.id === selected.id ? 'underline decoration-cyan-500/60 underline-offset-2' : ''
-                        ]"><StudentName :student="m" /></span><span v-if="i < groupMembers(currentGroup.id).length - 1" class="text-slate-400 dark:text-slate-600">、</span></template>
+                        ]"><StudentName :student="m" /></span><span v-if="i < groupMembers(currentGroup.id).length - 1" class="text-slate-600 dark:text-slate-400">、</span></template>
                     </div>
                   </div>
                 </div>
@@ -448,10 +448,10 @@ async function confirmWithdraw() {
                        text-xs font-display font-medium tracking-wide
                        border-b-2 -mb-px transition-all duration-150"
                 :class="!tab.enabled()
-                  ? 'border-transparent text-slate-400 dark:text-slate-700 cursor-not-allowed'
+                  ? 'border-transparent text-slate-600 dark:text-slate-700 cursor-not-allowed'
                   : activeTab === tab.key
                     ? TAB_ACTIVE_CLASS[tab.color] + ' cursor-pointer'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-black/5 dark:hover:bg-white/3 cursor-pointer'"
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-black/5 dark:hover:bg-white/3 cursor-pointer'"
               >
                 <component :is="tab.icon" class="w-3.5 h-3.5 flex-shrink-0" />
                 <span class="hidden sm:inline">{{ tab.label }}</span>
@@ -464,14 +464,14 @@ async function confirmWithdraw() {
               <!-- No tab selected -->
               <div v-if="!activeTab"
                    class="h-full flex flex-col items-center justify-center gap-2 text-center">
-                <p class="text-xs font-mono text-slate-400 dark:text-slate-700 tracking-widest uppercase">
+                <p class="text-xs font-mono text-slate-600 dark:text-slate-700 tracking-widest uppercase">
                   {{ isInactive ? '— INACTIVE —' : '↑ SELECT OPERATION' }}
                 </p>
               </div>
 
               <!-- MOVE -->
               <div v-else-if="activeTab === 'move'" class="space-y-4">
-                <p class="text-[10px] font-mono text-cyan-600 dark:text-cyan-500 tracking-widest uppercase">// 目標組別</p>
+                <p class="text-[10px] font-mono text-cyan-800 dark:text-cyan-500 tracking-widest uppercase">// 目標組別</p>
                 <select v-model="targetGroupId"
                   class="w-full px-3 py-2.5 text-sm rounded-lg border outline-none cursor-pointer transition-all
                          bg-white dark:bg-[#0f1520] border-slate-300 dark:border-dark-border text-slate-700 dark:text-slate-300
@@ -483,8 +483,8 @@ async function confirmWithdraw() {
 
                 <div v-if="targetGroupId"
                      class="rounded-lg border border-cyan-500/20 bg-cyan-50 dark:bg-cyan-400/5 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                  <span class="text-cyan-600 dark:text-cyan-400 font-semibold">{{ selected.name }}</span>
-                  　<span class="text-slate-400 dark:text-slate-600 font-mono text-xs">→</span>
+                  <span class="text-cyan-800 dark:text-cyan-400 font-semibold">{{ selected.name }}</span>
+                  　<span class="text-slate-600 dark:text-slate-400 font-mono text-xs">→</span>
                   　{{ data.groups.find(g => g.id === targetGroupId)?.name }}
                 </div>
 
@@ -497,8 +497,8 @@ async function confirmWithdraw() {
                     確認移動
                   </button>
                   <button @click="activeTab = null; targetGroupId = ''"
-                    class="px-4 py-2.5 rounded-lg text-sm text-slate-500 cursor-pointer
-                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors">
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     取消
                   </button>
                 </div>
@@ -511,7 +511,7 @@ async function confirmWithdraw() {
                     將 <span class="text-orange-600 dark:text-orange-400 font-semibold">{{ selected.name }}</span>
                     從「{{ currentGroup?.name }}」移除？
                   </p>
-                  <p class="text-xs font-mono text-slate-500">移除後學生將變為 UNASSIGNED 狀態。</p>
+                  <p class="text-xs font-mono text-slate-600 dark:text-slate-400">移除後學生將變為 UNASSIGNED 狀態。</p>
                 </div>
                 <div class="flex gap-2">
                   <button @click="confirmRemove"
@@ -521,8 +521,8 @@ async function confirmWithdraw() {
                     確認移除
                   </button>
                   <button @click="activeTab = null"
-                    class="px-4 py-2.5 rounded-lg text-sm text-slate-500 cursor-pointer
-                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors">
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     取消
                   </button>
                 </div>
@@ -530,7 +530,7 @@ async function confirmWithdraw() {
 
               <!-- JOIN -->
               <div v-else-if="activeTab === 'join'" class="space-y-4">
-                <p class="text-[10px] font-mono text-cyan-600 dark:text-cyan-500 tracking-widest uppercase">// 加入組別</p>
+                <p class="text-[10px] font-mono text-cyan-800 dark:text-cyan-500 tracking-widest uppercase">// 加入組別</p>
                 <select v-model="targetGroupId"
                   class="w-full px-3 py-2.5 text-sm rounded-lg border outline-none cursor-pointer transition-all
                          bg-white dark:bg-[#0f1520] border-slate-300 dark:border-dark-border text-slate-700 dark:text-slate-300
@@ -542,7 +542,7 @@ async function confirmWithdraw() {
 
                 <div v-if="targetGroupId"
                      class="rounded-lg border border-cyan-500/20 bg-cyan-50 dark:bg-cyan-400/5 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                  <span class="text-cyan-600 dark:text-cyan-400 font-semibold">{{ selected.name }}</span>
+                  <span class="text-cyan-800 dark:text-cyan-400 font-semibold">{{ selected.name }}</span>
                   　加入　{{ data.groups.find(g => g.id === targetGroupId)?.name }}
                 </div>
 
@@ -555,8 +555,8 @@ async function confirmWithdraw() {
                     確認加入
                   </button>
                   <button @click="activeTab = null; targetGroupId = ''"
-                    class="px-4 py-2.5 rounded-lg text-sm text-slate-500 cursor-pointer
-                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors">
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     取消
                   </button>
                 </div>
@@ -565,18 +565,18 @@ async function confirmWithdraw() {
               <!-- WITHDRAW step 1 -->
               <div v-else-if="activeTab === 'withdraw' && withdrawStep === 1" class="space-y-4">
                 <div class="rounded-lg border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/5 px-4 py-3 space-y-2">
-                  <p class="text-xs font-mono text-red-600 dark:text-red-400 tracking-widest uppercase font-semibold">⚠ WARNING</p>
+                  <p class="text-xs font-mono text-red-700 dark:text-red-400 tracking-widest uppercase font-semibold">⚠ WARNING</p>
                   <ul class="space-y-1 text-xs text-slate-600 dark:text-slate-400 font-mono">
                     <li v-if="currentGroup" class="flex items-start gap-2">
-                      <span class="text-red-500 mt-px">›</span>
+                      <span class="text-red-700 mt-px dark:text-red-400">›</span>
                       將自「{{ currentGroup.name }}」移除
                     </li>
                     <li class="flex items-start gap-2">
-                      <span class="text-red-500 mt-px">›</span>
+                      <span class="text-red-700 mt-px dark:text-red-400">›</span>
                       無法再被加入任何組別
                     </li>
                     <li class="flex items-start gap-2">
-                      <span class="text-slate-400 dark:text-slate-600 mt-px">›</span>
+                      <span class="text-slate-600 dark:text-slate-400 mt-px">›</span>
                       資料保留，可用相同學號在其他學年重新建立
                     </li>
                   </ul>
@@ -584,13 +584,13 @@ async function confirmWithdraw() {
                 <div class="flex gap-2">
                   <button @click="withdrawStep = 2"
                     class="flex-1 py-2.5 rounded-lg text-sm font-display font-semibold transition-all cursor-pointer
-                           bg-red-500 text-white hover:bg-red-400
+                           bg-red-600 text-white hover:bg-red-700
                            shadow-[0_0_12px_rgba(239,68,68,0.3)] hover:shadow-[0_0_18px_rgba(239,68,68,0.45)]">
                     我了解，繼續操作
                   </button>
                   <button @click="activeTab = null; withdrawStep = 1"
-                    class="px-4 py-2.5 rounded-lg text-sm text-slate-500 cursor-pointer
-                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors">
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     取消
                   </button>
                 </div>
@@ -600,25 +600,25 @@ async function confirmWithdraw() {
               <div v-else-if="activeTab === 'withdraw' && withdrawStep === 2" class="space-y-4">
                 <div class="rounded-lg border border-red-400 dark:border-red-500/50 bg-red-50 dark:bg-red-500/10 px-4 py-3 space-y-2
                             shadow-[0_0_16px_rgba(239,68,68,0.1)]">
-                  <p class="text-xs font-mono text-red-600 dark:text-red-400 tracking-widest uppercase font-bold">⛔ FINAL CONFIRM</p>
+                  <p class="text-xs font-mono text-red-700 dark:text-red-400 tracking-widest uppercase font-bold">⛔ FINAL CONFIRM</p>
                   <p class="text-sm text-slate-700 dark:text-slate-300">
                     確定將
-                    <span class="text-red-500 dark:text-red-400 font-semibold font-display">{{ selected.name }}</span>
-                    <span class="font-mono text-xs text-slate-500 ml-1">（{{ selected.student_id }}）</span>
+                    <span class="text-red-700 dark:text-red-400 font-semibold font-display">{{ selected.name }}</span>
+                    <span class="font-mono text-xs text-slate-600 ml-1 dark:text-slate-400">（{{ selected.student_id }}）</span>
                     標記為休退學？
                   </p>
-                  <p class="text-xs font-mono text-red-500/70">此操作將立即生效。</p>
+                  <p class="text-xs font-mono text-red-700/70 dark:text-red-400">此操作將立即生效。</p>
                 </div>
                 <div class="flex gap-2">
                   <button @click="confirmWithdraw"
                     class="flex-1 py-2.5 rounded-lg text-sm font-display font-bold tracking-wide transition-all cursor-pointer
-                           bg-red-600 text-white hover:bg-red-500
+                           bg-red-600 text-white hover:bg-red-700
                            shadow-[0_0_16px_rgba(239,68,68,0.35)] hover:shadow-[0_0_24px_rgba(239,68,68,0.5)]">
                     確認休退學
                   </button>
                   <button @click="withdrawStep = 1"
-                    class="px-4 py-2.5 rounded-lg text-sm text-slate-500 cursor-pointer
-                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors">
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     返回
                   </button>
                 </div>
@@ -637,8 +637,8 @@ async function confirmWithdraw() {
             <div v-if="toast"
                  class="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-mono border"
                  :class="toast.type === 'success'
-                   ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]'
-                   : 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700/40 text-amber-700 dark:text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]'">
+                   ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/40 text-emerald-800 dark:text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]'
+                   : 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700/40 text-amber-800 dark:text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]'">
               <Check class="w-4 h-4 flex-shrink-0" />
               {{ toast.msg }}
             </div>

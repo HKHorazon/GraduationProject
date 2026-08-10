@@ -32,16 +32,16 @@ const EVENT_META = {
   teacher_create: { label: '新增老師',   color: 'emerald' },
 }
 const COLOR_CLASS = {
-  emerald: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20',
-  blue:    'text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/15',
-  red:     'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/15',
-  amber:   'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/15',
+  emerald: 'text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20',
+  blue:    'text-blue-700 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/15',
+  red:     'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/15',
+  amber:   'text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/15',
 }
 function opLabel(l) {
   return EVENT_META[l.event]?.label ?? l.event
 }
 function opColor(l) {
-  return COLOR_CLASS[EVENT_META[l.event]?.color] ?? 'text-slate-500'
+  return COLOR_CLASS[EVENT_META[l.event]?.color] ?? 'text-slate-600 dark:text-slate-400'
 }
 
 // ── Related-record name lookup（log 直接帶 student/teacher/group id）──
@@ -129,10 +129,10 @@ function fmtTime(iso) {
     <div v-if="!auth.isEditor"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <div v-else class="w-full space-y-4">
@@ -140,16 +140,16 @@ function fmtTime(iso) {
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <History class="w-5 h-5 text-blue-600 dark:text-cyan-400" /> 異動紀錄
+            <History class="w-5 h-5 text-blue-700 dark:text-cyan-400" /> 異動紀錄
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">
+          <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">
             <template v-if="keyword.trim()">符合 {{ filteredLogs.length }} 筆 / 共 {{ logs.length }} 筆</template>
             <template v-else>共 {{ logs.length }} 筆</template>
           </p>
         </div>
         <button
-          class="text-xs text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400
-                 flex items-center gap-1 cursor-pointer"
+          class="text-xs text-slate-600 hover:text-blue-600 dark:hover:text-cyan-400
+                 flex items-center gap-1 cursor-pointer dark:text-slate-400"
           @click="loadLogs"
         >
           <RefreshCw class="w-3.5 h-3.5" :class="logsLoading ? 'animate-spin' : ''" />
@@ -159,21 +159,21 @@ function fmtTime(iso) {
 
       <!-- search -->
       <div class="relative">
-        <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none dark:text-slate-400" />
         <input v-model="keyword" class="input w-64 text-xs !pl-8" placeholder="搜尋全部欄位" />
       </div>
 
       <!-- table -->
       <div class="card p-0 overflow-hidden">
-        <p v-if="logsError" class="px-5 py-4 text-xs text-red-500">{{ logsError }}</p>
+        <p v-if="logsError" class="px-5 py-4 text-xs text-red-700 dark:text-red-400">{{ logsError }}</p>
         <p v-else-if="logsLoading && !logs.length"
-           class="px-5 py-10 text-center text-sm text-slate-400">載入中…</p>
+           class="px-5 py-10 text-center text-sm text-slate-600 dark:text-slate-400">載入中…</p>
         <p v-else-if="!logs.length"
-           class="px-5 py-10 text-center text-sm text-slate-400">尚無異動紀錄</p>
+           class="px-5 py-10 text-center text-sm text-slate-600 dark:text-slate-400">尚無異動紀錄</p>
 
         <template v-else>
           <table class="w-full table-fixed text-sm">
-            <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-400">
+            <thead class="border-b border-slate-100 dark:border-[#2a3347] text-xs text-slate-600 dark:text-slate-400">
               <tr>
                 <th class="text-left px-5 py-2.5 font-medium w-40">時間</th>
                 <th class="text-left px-3 py-2.5 font-medium w-24">操作者</th>
@@ -186,7 +186,7 @@ function fmtTime(iso) {
             </thead>
             <tbody class="divide-y divide-slate-50 dark:divide-[#1e2535]">
               <tr v-if="!filteredLogs.length">
-                <td colspan="7" class="px-5 py-10 text-center text-sm text-slate-400">
+                <td colspan="7" class="px-5 py-10 text-center text-sm text-slate-600 dark:text-slate-400">
                   沒有符合的紀錄
                 </td>
               </tr>
@@ -195,7 +195,7 @@ function fmtTime(iso) {
                 :key="l.id"
                 class="hover:bg-slate-50 dark:hover:bg-[#1a2235]"
               >
-                <td class="px-5 py-2.5 text-xs text-slate-400 whitespace-nowrap">
+                <td class="px-5 py-2.5 text-xs text-slate-600 whitespace-nowrap dark:text-slate-400">
                   {{ fmtTime(l.created_at) }}
                 </td>
                 <td class="px-3 py-2.5 text-slate-600 dark:text-slate-300 font-mono text-xs truncate">
@@ -217,7 +217,7 @@ function fmtTime(iso) {
                   <GroupName v-if="groupOf(l)" :id="l.group_id" :label="groupOf(l)" />
                   <template v-else>—</template>
                 </td>
-                <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400 truncate">
+                <td class="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-400 truncate">
                   {{ l.summary ?? '—' }}
                 </td>
               </tr>
@@ -228,7 +228,7 @@ function fmtTime(iso) {
           <div
             class="flex items-center justify-between px-5 py-3 border-t border-slate-100 dark:border-[#2a3347]"
           >
-            <p class="text-xs text-slate-400">
+            <p class="text-xs text-slate-600 dark:text-slate-400">
               <template v-if="filteredLogs.length">
                 顯示第 {{ pageStart }}–{{ pageEnd }} 筆 · 第 {{ page }} / {{ totalPages }} 頁
               </template>
@@ -239,7 +239,7 @@ function fmtTime(iso) {
                 :disabled="page === 1"
                 @click="page--"
                 class="px-2.5 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1 cursor-pointer
-                       bg-white dark:bg-[#1e2535] text-slate-500 dark:text-slate-400
+                       bg-white dark:bg-[#1e2535] text-slate-600 dark:text-slate-400
                        border-slate-200 dark:border-[#2a3347] hover:border-slate-300
                        disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200"
               >
@@ -249,7 +249,7 @@ function fmtTime(iso) {
                 :disabled="page === totalPages"
                 @click="page++"
                 class="px-2.5 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1 cursor-pointer
-                       bg-white dark:bg-[#1e2535] text-slate-500 dark:text-slate-400
+                       bg-white dark:bg-[#1e2535] text-slate-600 dark:text-slate-400
                        border-slate-200 dark:border-[#2a3347] hover:border-slate-300
                        disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200"
               >

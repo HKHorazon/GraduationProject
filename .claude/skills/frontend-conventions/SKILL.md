@@ -29,27 +29,18 @@ Reference implementations — when unsure, copy from these, never invent:
 6. **Icons**: `lucide-vue-next` only. **No new dependencies** — no UI kits, no CSS libs, no date pickers.
 7. **Text**: everything the user sees is Traditional Chinese.
 
-## Styling (dual theme, non-negotiable)
+## Styling
 
-`darkMode: 'class'`; dark is the DEFAULT. Light mode is a warm parchment theme, largely driven by global overrides in `src/assets/main.css` — so:
+顏色與排版**不在這份**，各有 binding skill，動手前讀：
 
-- Prefer the shared component classes: `.card` `.input` `.btn-primary` `.btn-secondary` `.btn-danger` `.label` `.id-mono` (defined in `main.css`, already theme-aware).
-- Otherwise write standard light-mode Tailwind (`bg-white`, `border-slate-200`, `text-slate-800`) + `dark:` variants with the Dark Tech tokens. `main.css` remaps the light utilities to parchment automatically.
-- Never hardcode one theme into a page (RemoveStudentView did this and needed a `.stu-change` override block — don't repeat that).
+- **`web-color`** — 色票、對比度、badge、禁止事項（唯一來源，不要在別處重寫色碼）。
+- **`web-display`** — 頁面骨架、間距／字級尺標、表格／表單／彈窗／空狀態、圖示、RWD。
+- **`web-excel`** / **`web-docx`** — 檔案產出。
 
-Tokens (from `tailwind.config.js` / `main.css`):
-
-| Token | Dark (default) | Light (parchment) |
-|---|---|---|
-| page bg | `#0f1117` (`dark-bg`) | `#ece3cf` |
-| sidebar/section | `#161b27` (`dark-sidebar`) | `#f7f1e1` |
-| card | `#1e2535` (`dark-card`) | `#f7f1e1` |
-| border | `#2a3347` (`dark-border`) | `#ddd0b3` |
-| accent | `#00d4ff` (`accent`) | `#00b3d8`, text `#0e7490` |
-
-Fonts: `font-display` Space Grotesk · `font-sans` DM Sans + Noto Sans TC · `font-mono` Fira Code.
-Table headers: `text-[10px] font-mono uppercase tracking-widest text-slate-500`.
-Badges: 已分組 `border-cyan-500/40 bg-cyan-400/10 text-cyan-400` · 未分組 `border-slate-700 bg-dark-border/50 text-slate-500` · INACTIVE `border-amber-700/50 bg-amber-900/20 text-amber-500`.
+只要記住三件事：`darkMode: 'class'`、深色是預設、優先用 `main.css` 的元件 class
+（`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`，已內建雙主題）。
+Fonts: `font-display` Space Grotesk · `font-sans` DM Sans + Noto Sans TC · `font-mono` Fira Code。
+交付前跑 `cd frontend && node scripts/check-colors.mjs`。
 
 ## User's UI shorthand
 

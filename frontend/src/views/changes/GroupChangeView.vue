@@ -219,10 +219,10 @@ async function doDisband() {
     <!-- no permission -->
     <div v-if="!auth.isEditor" class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <div v-else class="flex gap-5 h-full">
@@ -237,7 +237,7 @@ async function doDisband() {
 
         <!-- Search (large) -->
         <div class="relative">
-          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 pointer-events-none dark:text-slate-400" />
           <input
             v-model="search"
             type="text"
@@ -248,7 +248,7 @@ async function doDisband() {
             v-if="search"
             @click="search = ''"
             class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center
-                   rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                   rounded text-slate-600 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer dark:text-slate-400"
           >
             <X class="w-4 h-4" />
           </button>
@@ -267,13 +267,13 @@ async function doDisband() {
         </div>
 
         <!-- prompt before any criteria entered -->
-        <div v-if="!hasCriteria" class="flex flex-col items-center justify-center flex-1 gap-2 text-center text-slate-400">
-          <Search class="w-7 h-7 text-slate-300 dark:text-slate-600" />
+        <div v-if="!hasCriteria" class="flex flex-col items-center justify-center flex-1 gap-2 text-center text-slate-600 dark:text-slate-400">
+          <Search class="w-7 h-7 text-slate-300 dark:text-slate-400" />
           <p class="text-xs">輸入搜尋或選擇學年 / 老師<br>以顯示組別</p>
         </div>
 
         <template v-else>
-          <p class="text-[11px] text-slate-500 px-1">
+          <p class="text-[11px] text-slate-600 px-1 dark:text-slate-400">
             搜尋到 {{ filteredGroups.length }} 筆結果<span v-if="filteredGroups.length > RESULT_LIMIT">，只顯示前 {{ RESULT_LIMIT }} 筆</span>
           </p>
 
@@ -289,22 +289,22 @@ async function doDisband() {
             >
               <div class="flex items-center justify-between">
                 <span class="id-mono">第 {{ String(g.number).padStart(2, ' ') }} 組</span>
-                <span class="text-[10px] text-slate-400">{{ rocYear(g.school_year) }} 學年</span>
+                <span class="text-[10px] text-slate-600 dark:text-slate-400">{{ rocYear(g.school_year) }} 學年</span>
               </div>
               <p class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate mt-0.5">{{ g.name }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+              <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">
                 {{ g.teacher_ids.map(teacherName).join('、') || '未指定老師' }}
               </p>
               <p class="text-xs truncate mt-0.5">
-                <span class="text-slate-400 dark:text-slate-500">組員：</span><template
+                <span class="text-slate-600 dark:text-slate-400">組員：</span><template
                   v-if="members(g.id).length"
-                ><template v-for="(m, i) in members(g.id)" :key="m.id"><span :class="m.id === g.leader_id ? 'text-amber-500 font-semibold' : 'text-slate-500 dark:text-slate-400'">{{ m.name }}</span><span v-if="i < members(g.id).length - 1" class="text-slate-300 dark:text-slate-600">、</span></template></template><span
+                ><template v-for="(m, i) in members(g.id)" :key="m.id"><span :class="m.id === g.leader_id ? 'text-amber-800 dark:text-amber-400 font-semibold' : 'text-slate-600 dark:text-slate-400'">{{ m.name }}</span><span v-if="i < members(g.id).length - 1" class="text-slate-600 dark:text-slate-400">、</span></template></template><span
                   v-else
-                  class="text-slate-400 dark:text-slate-600"
+                  class="text-slate-600 dark:text-slate-400"
                 >無組員</span>
               </p>
             </button>
-            <p v-if="filteredGroups.length === 0" class="text-center text-xs text-slate-400 py-8">
+            <p v-if="filteredGroups.length === 0" class="text-center text-xs text-slate-600 py-8 dark:text-slate-400">
               找不到符合條件的組別
             </p>
           </div>
@@ -316,33 +316,33 @@ async function doDisband() {
         <!-- CREATE form -->
         <div v-if="isCreating" class="card overflow-hidden">
           <div class="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 dark:border-[#2a3347]">
-            <FolderPlus class="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+            <FolderPlus class="w-4 h-4 text-blue-700 dark:text-cyan-400" />
             <h3 class="font-semibold text-sm text-slate-700 dark:text-slate-200">新增組別</h3>
           </div>
 
           <div class="divide-y divide-slate-100 dark:divide-[#2a3347]">
             <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-              <label class="text-sm text-slate-500 dark:text-slate-400">學年度 <span class="text-red-400">*</span></label>
+              <label class="text-sm text-slate-600 dark:text-slate-400">學年度 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="createForm.school_year" list="gc-create-years" class="input" placeholder="114" />
               <datalist id="gc-create-years"><option v-for="y in years" :key="y" :value="y" /></datalist>
             </div>
             <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-              <label class="text-sm text-slate-500 dark:text-slate-400">組號 <span class="text-red-400">*</span></label>
+              <label class="text-sm text-slate-600 dark:text-slate-400">組號 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model.number="createForm.number" type="number" min="1" class="input" placeholder="1" />
             </div>
             <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-              <label class="text-sm text-slate-500 dark:text-slate-400">專題名稱 <span class="text-red-400">*</span></label>
+              <label class="text-sm text-slate-600 dark:text-slate-400">專題名稱 <span class="text-red-700 dark:text-red-400">*</span></label>
               <input v-model="createForm.name" class="input" placeholder="請輸入專題名稱" />
             </div>
             <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-              <label class="text-sm text-slate-500 dark:text-slate-400">專題類別</label>
+              <label class="text-sm text-slate-600 dark:text-slate-400">專題類別</label>
               <div>
                 <input v-model="createForm.category" list="gc-categories" class="input" placeholder="例如：資訊系統" />
                 <datalist id="gc-categories"><option v-for="c in categories" :key="c" :value="c" /></datalist>
               </div>
             </div>
             <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] gap-4">
-              <label class="text-sm text-slate-500 dark:text-slate-400 pt-1.5">指導老師</label>
+              <label class="text-sm text-slate-600 dark:text-slate-400 pt-1.5">指導老師</label>
               <div>
                 <div class="flex flex-wrap gap-2">
                   <button
@@ -353,18 +353,18 @@ async function doDisband() {
                     class="px-3 py-1.5 rounded-lg text-sm border transition-colors cursor-pointer"
                     :class="createForm.teacher_ids.includes(t.id)
                       ? 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-300 dark:border-cyan-700 font-medium'
-                      : 'border-slate-200 dark:border-[#2a3347] text-slate-500 dark:text-slate-400 hover:border-slate-300'"
+                      : 'border-slate-200 dark:border-[#2a3347] text-slate-600 dark:text-slate-400 hover:border-slate-300'"
                   >{{ t.name }}</button>
-                  <span v-if="data.teachers.length === 0" class="text-sm text-slate-400">尚無老師，請先到「資料管理」新增</span>
+                  <span v-if="data.teachers.length === 0" class="text-sm text-slate-600 dark:text-slate-400">尚無老師，請先到「資料管理」新增</span>
                 </div>
-                <p class="text-xs text-slate-400 mt-2">點選老師以加入 / 移除，可指定多位。</p>
+                <p class="text-xs text-slate-600 mt-2 dark:text-slate-400">點選老師以加入 / 移除，可指定多位。</p>
               </div>
             </div>
           </div>
 
           <div class="flex items-center gap-3 px-5 py-3.5 border-t border-slate-100 dark:border-[#2a3347]
                       bg-slate-50/60 dark:bg-[#161b27]/50">
-            <p v-if="createError" class="text-xs text-red-500">{{ createError }}</p>
+            <p v-if="createError" class="text-xs text-red-700 dark:text-red-400">{{ createError }}</p>
             <button class="btn-secondary ml-auto" @click="cancelCreate">取消</button>
             <button class="btn-primary flex items-center gap-1.5" :disabled="creating" @click="submitCreate">
               <FolderPlus class="w-4 h-4" /> {{ creating ? '建立中…' : '建立組別' }}
@@ -376,8 +376,8 @@ async function doDisband() {
         <div v-else-if="!selected"
              class="h-full flex flex-col items-center justify-center gap-3 border border-dashed
                     border-slate-200 dark:border-slate-700 rounded-xl text-center">
-          <Users class="w-8 h-8 text-slate-300 dark:text-slate-600" />
-          <p class="text-sm text-slate-400">從左側選擇一個組別，或點「新增組別」</p>
+          <Users class="w-8 h-8 text-slate-300 dark:text-slate-400" />
+          <p class="text-sm text-slate-600 dark:text-slate-400">從左側選擇一個組別，或點「新增組別」</p>
         </div>
 
         <!-- EDIT -->
@@ -388,11 +388,11 @@ async function doDisband() {
               <div>
                 <div class="flex items-center gap-2">
                   <span class="id-mono">第 {{ selected.number }} 組</span>
-                  <span class="text-xs text-slate-400">{{ rocYear(selected.school_year) }} 學年</span>
+                  <span class="text-xs text-slate-600 dark:text-slate-400">{{ rocYear(selected.school_year) }} 學年</span>
                 </div>
                 <p class="text-base font-bold text-slate-800 dark:text-slate-100 mt-1">{{ selected.name }}</p>
               </div>
-              <div class="text-right text-xs text-slate-400 flex items-center gap-1">
+              <div class="text-right text-xs text-slate-600 flex items-center gap-1 dark:text-slate-400">
                 <Users class="w-3.5 h-3.5" /> {{ members(selected.id).length }} 位組員
               </div>
             </div>
@@ -401,9 +401,9 @@ async function doDisband() {
           <!-- members (wide detailed cards) -->
           <div class="card p-5">
             <div class="flex items-center gap-2 mb-3">
-              <Users class="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              <Users class="w-4 h-4 text-blue-700 dark:text-cyan-400" />
               <h3 class="font-semibold text-sm text-slate-700 dark:text-slate-200">組員資訊</h3>
-              <span class="text-xs text-slate-400">共 {{ members(selected.id).length }} 位</span>
+              <span class="text-xs text-slate-600 dark:text-slate-400">共 {{ members(selected.id).length }} 位</span>
             </div>
 
             <div v-if="members(selected.id).length" class="flex flex-col gap-2.5">
@@ -416,7 +416,7 @@ async function doDisband() {
                 <!-- avatar -->
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
                      :class="m.status === 'inactive'
-                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400'
                        : 'bg-blue-100 dark:bg-cyan-900/25 text-blue-700 dark:text-cyan-300'">
                   {{ m.name[0] }}
                 </div>
@@ -427,10 +427,10 @@ async function doDisband() {
                     <span class="text-base font-semibold text-slate-800 dark:text-slate-100"><StudentName :student="m" /></span>
                     <span v-if="m.id === selected.leader_id"
                           class="text-[10px] px-1.5 py-0.5 rounded font-medium
-                                 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400
+                                 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400
                                  border border-amber-200 dark:border-amber-700/40">★ 組長</span>
                   </div>
-                  <div class="flex items-center gap-x-3 gap-y-0.5 flex-wrap mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <div class="flex items-center gap-x-3 gap-y-0.5 flex-wrap mt-1 text-xs text-slate-600 dark:text-slate-400">
                     <span class="id-mono">{{ m.student_id }}</span>
                     <span>{{ yearClass(m.school_year, m.class_) }}</span>
                   </div>
@@ -439,19 +439,19 @@ async function doDisband() {
                 <!-- status: only flag 休退學 -->
                 <div v-if="m.status === 'inactive'" class="flex-shrink-0">
                   <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md
-                               bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400
+                               bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400
                                border border-amber-200 dark:border-amber-700/40">休退學</span>
                 </div>
               </div>
             </div>
-            <p v-else class="text-sm text-slate-400 py-4 text-center">此組目前沒有組員</p>
+            <p v-else class="text-sm text-slate-600 py-4 text-center dark:text-slate-400">此組目前沒有組員</p>
           </div>
 
           <!-- edit form (formal) -->
           <div class="card overflow-hidden">
             <!-- header -->
             <div class="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100 dark:border-[#2a3347]">
-              <FileText class="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              <FileText class="w-4 h-4 text-blue-700 dark:text-cyan-400" />
               <h3 class="font-semibold text-sm text-slate-700 dark:text-slate-200">組別資料編輯</h3>
             </div>
 
@@ -459,27 +459,27 @@ async function doDisband() {
             <div class="divide-y divide-slate-100 dark:divide-[#2a3347]">
               <!-- 學年度 (read-only) -->
               <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-                <span class="text-sm text-slate-500 dark:text-slate-400">學年度</span>
+                <span class="text-sm text-slate-600 dark:text-slate-400">學年度</span>
                 <span class="text-sm text-slate-700 dark:text-slate-200">{{ rocYear(selected.school_year) }} 學年</span>
               </div>
 
               <!-- 組號 (read-only) -->
               <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-                <span class="text-sm text-slate-500 dark:text-slate-400">組號</span>
+                <span class="text-sm text-slate-600 dark:text-slate-400">組號</span>
                 <span class="text-sm text-slate-700 dark:text-slate-200">第 {{ selected.number }} 組</span>
               </div>
 
               <!-- 專題名稱 -->
               <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-                <label class="text-sm text-slate-500 dark:text-slate-400">
-                  專題名稱 <span class="text-red-400">*</span>
+                <label class="text-sm text-slate-600 dark:text-slate-400">
+                  專題名稱 <span class="text-red-700 dark:text-red-400">*</span>
                 </label>
                 <input v-model="editName" class="input" placeholder="請輸入專題名稱" />
               </div>
 
               <!-- 專題類別 -->
               <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] items-center gap-4">
-                <label class="text-sm text-slate-500 dark:text-slate-400">專題類別</label>
+                <label class="text-sm text-slate-600 dark:text-slate-400">專題類別</label>
                 <div>
                   <input v-model="editCategory" list="gc-categories" class="input" placeholder="例如：資訊系統" />
                   <datalist id="gc-categories"><option v-for="c in categories" :key="c" :value="c" /></datalist>
@@ -488,7 +488,7 @@ async function doDisband() {
 
               <!-- 指導老師 -->
               <div class="px-5 py-3.5 grid grid-cols-[7rem_1fr] gap-4">
-                <label class="text-sm text-slate-500 dark:text-slate-400 pt-1.5">指導老師</label>
+                <label class="text-sm text-slate-600 dark:text-slate-400 pt-1.5">指導老師</label>
                 <div>
                   <div class="flex flex-wrap gap-2">
                     <button
@@ -499,11 +499,11 @@ async function doDisband() {
                       class="px-3 py-1.5 rounded-lg text-sm border transition-colors cursor-pointer"
                       :class="teacherIds.includes(t.id)
                         ? 'bg-blue-50 dark:bg-cyan-900/20 text-blue-700 dark:text-cyan-400 border-blue-300 dark:border-cyan-700 font-medium'
-                        : 'border-slate-200 dark:border-[#2a3347] text-slate-500 dark:text-slate-400 hover:border-slate-300'"
+                        : 'border-slate-200 dark:border-[#2a3347] text-slate-600 dark:text-slate-400 hover:border-slate-300'"
                     >{{ t.name }}</button>
-                    <span v-if="data.teachers.length === 0" class="text-sm text-slate-400">尚無老師，請先到「資料管理」新增</span>
+                    <span v-if="data.teachers.length === 0" class="text-sm text-slate-600 dark:text-slate-400">尚無老師，請先到「資料管理」新增</span>
                   </div>
-                  <p class="text-xs text-slate-400 mt-2">點選老師以加入 / 移除，可指定多位。</p>
+                  <p class="text-xs text-slate-600 mt-2 dark:text-slate-400">點選老師以加入 / 移除，可指定多位。</p>
                 </div>
               </div>
             </div>
@@ -511,13 +511,13 @@ async function doDisband() {
             <!-- footer action bar -->
             <div class="flex items-center gap-3 px-5 py-3.5 border-t border-slate-100 dark:border-[#2a3347]
                         bg-slate-50/60 dark:bg-[#161b27]/50">
-              <p v-if="editError" class="text-xs text-red-500">{{ editError }}</p>
+              <p v-if="editError" class="text-xs text-red-700 dark:text-red-400">{{ editError }}</p>
               <Transition enter-active-class="transition" enter-from-class="opacity-0" leave-active-class="transition" leave-to-class="opacity-0">
-                <span v-if="savedFlash" class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <span v-if="savedFlash" class="flex items-center gap-1 text-xs text-emerald-800 dark:text-emerald-400">
                   <Check class="w-3.5 h-3.5" />已儲存
                 </span>
               </Transition>
-              <span v-if="dirty && !savedFlash" class="text-xs text-amber-500">尚有未儲存的變更</span>
+              <span v-if="dirty && !savedFlash" class="text-xs text-amber-800 dark:text-amber-400">尚有未儲存的變更</span>
               <button class="btn-primary flex items-center gap-1.5 ml-auto" :disabled="!dirty || saving" @click="saveChanges">
                 <Save class="w-4 h-4" /> {{ saving ? '儲存中…' : '儲存變更' }}
               </button>
@@ -528,8 +528,8 @@ async function doDisband() {
           <div class="card p-5 border-red-200 dark:!border-red-900/40">
             <div class="flex items-center justify-between gap-4">
               <div>
-                <h3 class="font-semibold text-sm text-red-600 dark:text-red-400">解散組別</h3>
-                <p class="text-xs text-slate-400 mt-0.5">
+                <h3 class="font-semibold text-sm text-red-700 dark:text-red-400">解散組別</h3>
+                <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">
                   刪除此組別，組員將變為未分組（資料保留）。此操作無法復原。
                 </p>
               </div>
@@ -549,11 +549,11 @@ async function doDisband() {
         <div class="card w-80 mx-4 p-6 flex flex-col gap-4">
           <div class="flex items-start gap-3">
             <div class="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-              <Trash2 class="w-4 h-4 text-red-500 dark:text-red-400" />
+              <Trash2 class="w-4 h-4 text-red-700 dark:text-red-400" />
             </div>
             <div>
               <p class="font-semibold text-slate-800 dark:text-slate-100 text-sm">確認解散組別？</p>
-              <p class="text-xs text-slate-400 mt-1">
+              <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">
                 「第 {{ selected?.number }} 組 — {{ selected?.name }}」將被刪除，{{ members(selected?.id).length }} 位組員會變未分組。
               </p>
             </div>

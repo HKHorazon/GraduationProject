@@ -428,9 +428,9 @@ async function removeReview() {
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <ClipboardCheck class="w-5 h-5 text-blue-600 dark:text-cyan-400" /> 審查評分
+            <ClipboardCheck class="w-5 h-5 text-blue-700 dark:text-cyan-400" /> 審查評分
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">
+          <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">
             成績由管理者以 Excel 匯入，也可以直接在表格上修改。系上老師不可評分自己指導的組別（紅色格）。
           </p>
         </div>
@@ -463,7 +463,7 @@ async function removeReview() {
             {{ editing ? `編輯審查 — ${editing.name}` : '新增審查' }}
           </h3>
           <button
-            type="button" class="text-slate-400 hover:text-slate-600 cursor-pointer"
+            type="button" class="text-slate-600 hover:text-slate-600 cursor-pointer dark:text-slate-400"
             @click="formOpen = false"
           ><X class="w-4 h-4" /></button>
         </div>
@@ -497,14 +497,14 @@ async function removeReview() {
             <div v-for="(c, i) in form.criteria" :key="i" class="flex items-center gap-2">
               <input v-model="c.name" type="text" class="input flex-1" placeholder="項目名稱" />
               <input v-model.number="c.weight" type="number" min="1" max="100" class="input w-20 text-center" />
-              <span class="text-xs text-slate-500">%</span>
+              <span class="text-xs text-slate-600 dark:text-slate-400">%</span>
               <button
                 type="button" class="btn-secondary text-xs px-2 py-1"
                 :disabled="form.criteria.length <= 1" @click="removeCriterion(i)"
               ><Trash2 class="w-3.5 h-3.5" /></button>
             </div>
           </div>
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">
             每位評審的總分＝各項目依權重加權平均。已有評分資料時不可增減項目數量。
           </p>
         </div>
@@ -527,7 +527,7 @@ async function removeReview() {
                 />
                 {{ t.name }}
               </label>
-              <span v-if="!data.teachers.length" class="text-xs text-slate-500">尚無老師資料</span>
+              <span v-if="!data.teachers.length" class="text-xs text-slate-600 dark:text-slate-400">尚無老師資料</span>
             </div>
           </div>
           <div>
@@ -544,14 +544,14 @@ async function removeReview() {
                 v-for="k in formExternals" :key="k"
                 class="flex items-center gap-1 px-2 py-1 rounded border text-sm
                        border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20
-                       text-amber-700 dark:text-amber-400"
+                       text-amber-800 dark:text-amber-400"
               >
                 {{ k.slice(EXT.length) }}
                 <button type="button" class="cursor-pointer hover:text-red-500" @click="removeExternal(k)">
                   <X class="w-3 h-3" />
                 </button>
               </span>
-              <span v-if="!formExternals.length" class="text-xs text-slate-500">（沒有外審委員）</span>
+              <span v-if="!formExternals.length" class="text-xs text-slate-600 dark:text-slate-400">（沒有外審委員）</span>
             </div>
           </div>
         </div>
@@ -563,21 +563,21 @@ async function removeReview() {
             <div class="flex items-center gap-1.5">
               <span class="text-sm text-slate-600 dark:text-slate-300">系上老師平均</span>
               <input v-model.number="form.internal_weight" type="number" min="0" max="100" class="input w-20 text-center" />
-              <span class="text-xs text-slate-500">%</span>
+              <span class="text-xs text-slate-600 dark:text-slate-400">%</span>
             </div>
-            <span class="text-slate-400">＋</span>
+            <span class="text-slate-600 dark:text-slate-400">＋</span>
             <div class="flex items-center gap-1.5">
               <span class="text-sm text-slate-600 dark:text-slate-300">外審委員平均</span>
               <input v-model.number="form.external_weight" type="number" min="0" max="100" class="input w-20 text-center" />
-              <span class="text-xs text-slate-500">%</span>
+              <span class="text-xs text-slate-600 dark:text-slate-400">%</span>
             </div>
             <span
               class="text-xs"
               :class="Number(form.internal_weight) + Number(form.external_weight) === 100
-                ? 'text-slate-500' : 'text-amber-600 dark:text-amber-400'"
+                ? 'text-slate-600 dark:text-slate-400' : 'text-amber-800 dark:text-amber-400'"
             >合計 {{ Number(form.internal_weight) + Number(form.external_weight) }}%</span>
           </div>
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">
             只有一邊有成績時，加權總分就等於那一邊的平均。沒評分的評審不列入平均。
           </p>
         </div>
@@ -587,7 +587,7 @@ async function removeReview() {
         </label>
 
         <div class="flex items-center justify-end gap-2 pt-1">
-          <span v-if="error" class="text-xs text-red-500 dark:text-red-400 mr-auto">{{ error }}</span>
+          <span v-if="error" class="text-xs text-red-700 dark:text-red-400 mr-auto">{{ error }}</span>
           <button type="button" class="btn-secondary text-sm" @click="formOpen = false">取消</button>
           <button type="button" class="btn-primary text-sm" :disabled="busy" @click="submitForm">儲存</button>
         </div>
@@ -604,17 +604,17 @@ async function removeReview() {
           </select>
           <span
             v-if="review"
-            class="text-sm font-medium text-cyan-700 dark:text-cyan-400"
+            class="text-sm font-medium text-cyan-800 dark:text-cyan-400"
             :title="`評分標準：${criteriaSummary}`"
           >評分標準：{{ criteriaSummary }}</span>
-          <span v-if="review" class="text-sm font-medium text-cyan-700 dark:text-cyan-400">
+          <span v-if="review" class="text-sm font-medium text-cyan-800 dark:text-cyan-400">
             ｜ 系上 {{ review.internal_weight }}% ／ 外審 {{ review.external_weight }}%
           </span>
-          <span v-if="message" class="text-xs text-emerald-600 dark:text-emerald-400">{{ message }}</span>
-          <span v-if="error" class="text-xs text-red-500 dark:text-red-400">{{ error }}</span>
+          <span v-if="message" class="text-xs text-emerald-800 dark:text-emerald-400">{{ message }}</span>
+          <span v-if="error" class="text-xs text-red-700 dark:text-red-400">{{ error }}</span>
         </div>
 
-        <div v-if="!review" class="card px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+        <div v-if="!review" class="card px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
           尚未建立任何審查場次{{ auth.isSuperAdmin ? '——按右上角「新增審查」開始。' : '。' }}
         </div>
 
@@ -637,7 +637,7 @@ async function removeReview() {
             <button type="button" class="btn-primary text-xs flex items-center gap-1" @click="exportScores">
               <Download class="w-3.5 h-3.5" /> 匯出成績
             </button>
-            <span v-if="canEdit" class="text-xs text-slate-500">
+            <span v-if="canEdit" class="text-xs text-slate-600 dark:text-slate-400">
               Excel 版型與下表相同。直接在格子輸入、離開欄位即存檔；把某位評審的分數全部清空＝刪除該筆。
             </span>
           </div>
@@ -648,8 +648,8 @@ async function removeReview() {
               <thead>
                 <tr class="border-b border-slate-200 dark:border-[#2a3347]">
                   <th
-                    class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-500
-                           whitespace-nowrap cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300"
+                    class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600
+                           whitespace-nowrap cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 dark:text-slate-400"
                     title="依組號排序"
                     @click="sortBy('number')"
                   >
@@ -659,12 +659,12 @@ async function removeReview() {
                       class="w-3 h-3 inline-block align-middle"
                     />
                   </th>
-                  <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-500 whitespace-nowrap">題目</th>
-                  <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-500 whitespace-nowrap">指導老師</th>
+                  <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 whitespace-nowrap dark:text-slate-400">題目</th>
+                  <th class="text-left px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 whitespace-nowrap dark:text-slate-400">指導老師</th>
                   <th
                     v-for="r in roster" :key="r"
                     class="px-2 py-2 text-xs font-medium text-center border-l border-slate-200 dark:border-[#2a3347]"
-                    :class="r.startsWith(EXT) ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'"
+                    :class="r.startsWith(EXT) ? 'text-amber-800 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'"
                     :title="reviewerLabel(r)"
                   ><span class="block max-w-[8rem] truncate mx-auto">{{ reviewerLabel(r) }}</span></th>
                   <th
@@ -673,9 +673,9 @@ async function removeReview() {
                       { key: 'external', label: '外審', title: '外審委員平均' },
                       { key: 'final', label: '總分', title: '加權總分（系上 × 系上% ＋ 外審 × 外審%）' },
                     ]" :key="c.key"
-                    class="px-2 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-500 text-center
+                    class="px-2 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 text-center
                            whitespace-nowrap cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300
-                           border-l border-slate-200 dark:border-[#2a3347]"
+                           border-l border-slate-200 dark:border-[#2a3347] dark:text-slate-400"
                     :title="`${c.title}（點擊排序）`"
                     @click="sortBy(c.key)"
                   >
@@ -724,7 +724,7 @@ async function removeReview() {
                       >
                         <span
                           v-if="review.criteria.length > 1"
-                          class="text-[10px] text-slate-500 flex-1 truncate text-left" :title="c.name"
+                          class="text-[10px] text-slate-600 dark:text-slate-400 flex-1 truncate text-left" :title="c.name"
                         >{{ c.name }}</span>
                         <input
                           v-model="drafts[keyOf(g.id, r)].scores[i]"
@@ -752,19 +752,19 @@ async function removeReview() {
                              border-l border-slate-200 dark:border-[#2a3347]">
                     {{ avgOf(g.id, externalReviewers) ?? '—' }}
                   </td>
-                  <td class="px-2 py-1.5 text-center font-mono font-semibold text-blue-600 dark:text-cyan-400
+                  <td class="px-2 py-1.5 text-center font-mono font-semibold text-blue-700 dark:text-cyan-400
                              border-l border-slate-200 dark:border-[#2a3347]">
                     {{ finalScore(g.id) ?? '—' }}
                   </td>
                 </tr>
                 <tr v-if="!roster.length">
-                  <td colspan="6" class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+                  <td colspan="6" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                     尚未設定評審名單，也還沒有任何評分{{ auth.isSuperAdmin ? '——按「設定」加入評審。' : '。' }}
                   </td>
                 </tr>
                 <tr v-else-if="!groups.length">
                   <td :colspan="6 + roster.length"
-                      class="px-4 py-10 text-center text-slate-400 dark:text-slate-600 text-sm">
+                      class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                     此學年沒有組別
                   </td>
                 </tr>

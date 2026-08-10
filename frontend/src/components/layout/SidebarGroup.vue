@@ -21,7 +21,7 @@ function toggle() { open.value = !open.value }
     <button
       @click="toggle"
       class="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-widest
-             text-slate-400 dark:text-slate-500
+             text-slate-600 dark:text-slate-400
              hover:text-slate-700 dark:hover:text-slate-300
              transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-[#2a3347]/30
              cursor-pointer"
@@ -33,7 +33,7 @@ function toggle() { open.value = !open.value }
       >{{ label }}</span>
       <ChevronDown
         v-if="!collapsed"
-        class="w-3 h-3 text-slate-400 transition-transform duration-200"
+        class="w-3 h-3 text-slate-600 transition-transform duration-200 dark:text-slate-400"
         :class="open ? 'rotate-0' : '-rotate-90'"
       />
     </button>

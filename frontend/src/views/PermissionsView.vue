@@ -2,7 +2,7 @@
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissionsStore, PAGES } from '@/stores/permissions'
-import { ShieldOff, Shield, Edit3, Eye, RotateCcw, Check } from 'lucide-vue-next'
+import { ShieldOff, Shield, Edit3, Eye, RotateCcw, Check, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const auth = useAuthStore()
@@ -34,9 +34,9 @@ async function handleReset() {
 }
 
 const ROLES = [
-  { key: 'viewer',      label: 'VIEWER',      icon: Eye,    color: 'text-slate-500 dark:text-slate-400' },
-  { key: 'editor',      label: 'EDITOR',      icon: Edit3,  color: 'text-blue-600 dark:text-cyan-400' },
-  { key: 'super_admin', label: 'SUPER ADMIN', icon: Shield, color: 'text-amber-600 dark:text-amber-400' },
+  { key: 'viewer',      label: 'VIEWER',      icon: Eye,    color: 'text-slate-600 dark:text-slate-400' },
+  { key: 'editor',      label: 'EDITOR',      icon: Edit3,  color: 'text-blue-700 dark:text-cyan-400' },
+  { key: 'super_admin', label: 'SUPER ADMIN', icon: Shield, color: 'text-amber-800 dark:text-amber-400' },
 ]
 </script>
 
@@ -46,10 +46,10 @@ const ROLES = [
     <div v-if="!auth.isSuperAdmin"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無存取權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限 Super Admin 使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限 Super Admin 使用</p>
     </div>
 
     <template v-else>
@@ -57,7 +57,7 @@ const ROLES = [
       <div class="flex items-center justify-between mb-5">
         <div>
           <h2 class="font-bold text-slate-800 dark:text-slate-100">權限設定</h2>
-          <p class="text-xs text-slate-400 mt-0.5">設定各角色可存取的頁面</p>
+          <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">設定各角色可存取的頁面</p>
         </div>
         <div class="flex items-center gap-2">
           <!-- Saved indicator -->
@@ -70,20 +70,20 @@ const ROLES = [
             leave-to-class="opacity-0"
           >
             <span v-if="saved"
-                  class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  class="flex items-center gap-1 text-xs text-emerald-800 dark:text-emerald-400">
               <Check class="w-3.5 h-3.5" />已儲存
             </span>
           </Transition>
 
           <!-- Save error -->
           <span v-if="error"
-                class="text-xs text-red-600 dark:text-red-400">{{ error }}</span>
+                class="text-xs text-red-700 dark:text-red-400">{{ error }}</span>
 
           <button
             @click="handleReset"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
                    border border-slate-200 dark:border-[#2a3347]
-                   text-slate-500 dark:text-slate-400
+                   text-slate-600 dark:text-slate-400
                    hover:border-slate-300 dark:hover:border-slate-500
                    hover:text-slate-700 dark:hover:text-slate-200"
           >
@@ -98,7 +98,7 @@ const ROLES = [
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-slate-100 dark:border-[#2a3347]">
-              <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 w-48">頁面</th>
+              <th class="text-left px-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 w-48">頁面</th>
               <th
                 v-for="role in ROLES"
                 :key="role.key"
@@ -120,19 +120,22 @@ const ROLES = [
             >
               <td class="px-5 py-4">
                 <div class="font-medium text-slate-700 dark:text-slate-200 text-sm">{{ page.label }}</div>
-                <div class="text-xs text-slate-400 font-mono mt-0.5">{{ page.route }}</div>
+                <div class="text-xs text-slate-600 font-mono mt-0.5 dark:text-slate-400">{{ page.route }}</div>
               </td>
 
               <!-- viewer -->
               <td class="px-4 py-4 text-center">
                 <button
                   @click="handleToggle(page.key, 'viewer')"
+                  :title="perms.canAccess(page.key, 'viewer') ? '可存取，點擊關閉' : '不可存取，點擊開啟'"
                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
                   :class="perms.canAccess(page.key, 'viewer')
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
-                    : 'bg-slate-100 dark:bg-[#1e2535] text-slate-300 dark:text-slate-600 hover:bg-slate-200 dark:hover:bg-[#2a3347]'"
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-cyan-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                    : 'bg-slate-100 dark:bg-[#1e2535] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#2a3347]'"
                 >
-                  <Check class="w-4 h-4" />
+                  <!-- 開/關用不同圖示，不只靠顏色深淺區分 -->
+                  <Check v-if="perms.canAccess(page.key, 'viewer')" class="w-4 h-4" />
+                  <X v-else class="w-4 h-4" />
                 </button>
               </td>
 
@@ -140,20 +143,23 @@ const ROLES = [
               <td class="px-4 py-4 text-center">
                 <button
                   @click="handleToggle(page.key, 'editor')"
+                  :title="perms.canAccess(page.key, 'editor') ? '可存取，點擊關閉' : '不可存取，點擊開啟'"
                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
                   :class="perms.canAccess(page.key, 'editor')
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
-                    : 'bg-slate-100 dark:bg-[#1e2535] text-slate-300 dark:text-slate-600 hover:bg-slate-200 dark:hover:bg-[#2a3347]'"
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-cyan-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                    : 'bg-slate-100 dark:bg-[#1e2535] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#2a3347]'"
                 >
-                  <Check class="w-4 h-4" />
+                  <!-- 開/關用不同圖示，不只靠顏色深淺區分 -->
+                  <Check v-if="perms.canAccess(page.key, 'editor')" class="w-4 h-4" />
+                  <X v-else class="w-4 h-4" />
                 </button>
               </td>
 
               <!-- super_admin: always on, not clickable -->
               <td class="px-4 py-4 text-center">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg
-                             bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400
-                             opacity-60 cursor-not-allowed">
+                             bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400
+                             cursor-not-allowed" title="Super Admin 固定可存取">
                   <Check class="w-4 h-4" />
                 </span>
               </td>
@@ -163,7 +169,7 @@ const ROLES = [
       </div>
 
       <!-- Note -->
-      <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+      <p class="mt-3 text-xs text-slate-600 dark:text-slate-400">
         Super Admin 固定擁有全部頁面的存取權，無法調整。帳號管理與權限設定頁面同樣僅限 Super Admin。
       </p>
     </template>

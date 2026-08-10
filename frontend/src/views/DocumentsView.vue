@@ -129,7 +129,7 @@ const previewOps = computed(() => {
   const ops = [
     {
       icon: '✦',
-      color: 'text-blue-600 dark:text-cyan-400',
+      color: 'text-blue-700 dark:text-cyan-400',
       text: `建立新組別「${f1.value.title}」`,
       sub: `第 ${f1.value.number} 組・學年 ${f1.value.school_year}・指導老師：${teacher?.name ?? '—'}`,
     },
@@ -137,7 +137,7 @@ const previewOps = computed(() => {
   if (leaderStudent.value) {
     ops.push({
       icon: '★',
-      color: 'text-amber-500',
+      color: 'text-amber-800 dark:text-amber-400',
       text: `設定組長：${leaderStudent.value.name}（${leaderStudent.value.student_id}）`,
       sub: '加入本組並標記為組長',
     })
@@ -146,7 +146,7 @@ const previewOps = computed(() => {
     if (s) {
       ops.push({
         icon: '◆',
-        color: 'text-slate-400',
+        color: 'text-slate-600 dark:text-slate-400',
         text: `加入組員：${s.name}（${s.student_id}）`,
         sub: '加入本組',
       })
@@ -464,7 +464,7 @@ const previewOps2 = computed(() => {
     const ldr = data.students.find((s) => s.id === g.leader_id)
     ops.push({
       icon: '★',
-      color: 'text-amber-500',
+      color: 'text-amber-800 dark:text-amber-400',
       text: `清除「${g.name}」的組長`,
       sub: `${ldr?.name ?? ''} 轉出，原組保留`,
     })
@@ -474,7 +474,7 @@ const previewOps2 = computed(() => {
   if (f2Cond.value === 'create') {
     ops.push({
       icon: '✦',
-      color: 'text-blue-600 dark:text-cyan-400',
+      color: 'text-blue-700 dark:text-cyan-400',
       text: `建立新組別「${destName}」`,
       sub: `第 ${v.new_number} 組・學年 ${v.new_school_year}・指導老師：${teacherNameById(v.teacher_id)}${v.new_category ? '・' + v.new_category : ''}`,
     })
@@ -485,7 +485,7 @@ const previewOps2 = computed(() => {
     const src = s.group_id ? data.groups.find((x) => x.id === s.group_id) : null
     ops.push({
       icon: '◆',
-      color: 'text-slate-400',
+      color: 'text-slate-600 dark:text-slate-400',
       text: `將 ${s.name}（${s.student_id}）加入「${destName}」`,
       sub: `原：${src?.name ?? '未分組'}`,
     })
@@ -495,7 +495,7 @@ const previewOps2 = computed(() => {
   for (const s of removals) {
     ops.push({
       icon: '◇',
-      color: 'text-red-400',
+      color: 'text-red-700 dark:text-red-400',
       text: `將 ${s.name}（${s.student_id}）移出「${destName}」`,
       sub: '變為未分組',
     })
@@ -506,7 +506,7 @@ const previewOps2 = computed(() => {
   if (newLeader && (f2Cond.value === 'create' || f2TargetGroup.value?.leader_id !== newLeader.id)) {
     ops.push({
       icon: '★',
-      color: 'text-amber-500',
+      color: 'text-amber-800 dark:text-amber-400',
       text: `設定組長：${newLeader.name}（${newLeader.student_id}）`,
       sub: `「${destName}」的組長`,
     })
@@ -518,7 +518,7 @@ const previewOps2 = computed(() => {
     if (g && !(g.teacher_ids.length === 1 && g.teacher_ids[0] === v.teacher_id)) {
       ops.push({
         icon: '✦',
-        color: 'text-blue-600 dark:text-cyan-400',
+        color: 'text-blue-700 dark:text-cyan-400',
         text: `「${destName}」指導老師改為：${teacherNameById(v.teacher_id)}`,
         sub: `原指導老師：${groupTeachers(g)}`,
       })
@@ -600,17 +600,17 @@ function resetF2() {
     <div v-if="!auth.isEditor"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <div v-else class="flex gap-5 h-full">
 
       <!-- ═══ LEFT: doc sidebar ═══ -->
       <div class="w-44 flex-shrink-0 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2">
+        <p class="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-1 mb-2 dark:text-slate-400">
           文件專區
         </p>
 
@@ -648,7 +648,7 @@ function resetF2() {
 
               <!-- header -->
               <div class="text-center py-4 px-6 border-b border-slate-300 dark:border-[#2a3347]">
-                <p class="text-[10px] font-mono text-slate-400 mb-1">附件一　FM-20430-008</p>
+                <p class="text-[10px] font-mono text-slate-600 mb-1 dark:text-slate-400">附件一　FM-20430-008</p>
                 <h2 class="text-base font-bold text-slate-800 dark:text-slate-100">
                   多媒體遊戲發展與應用系實務專題指導老師同意書
                 </h2>
@@ -692,7 +692,7 @@ function resetF2() {
                         {{ t.name }}
                       </option>
                     </select>
-                    <p v-if="!data.teachers.length" class="text-xs text-slate-400 mt-1">
+                    <p v-if="!data.teachers.length" class="text-xs text-slate-600 mt-1 dark:text-slate-400">
                       尚無老師資料，請先到「資料管理」新增
                     </p>
                   </td>
@@ -704,7 +704,7 @@ function resetF2() {
                   <td class="cell-body">
                     <div class="flex items-center gap-4 flex-wrap">
                       <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 dark:text-slate-400">學號：</span>
+                        <span class="text-xs text-slate-600 dark:text-slate-400">學號：</span>
                         <input
                           v-model="f1.leader_sid"
                           class="input !w-32 !py-1"
@@ -716,17 +716,17 @@ function resetF2() {
                         />
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 dark:text-slate-400">姓名：</span>
+                        <span class="text-xs text-slate-600 dark:text-slate-400">姓名：</span>
                         <span
                           class="text-sm min-w-[4rem]"
                           :class="leaderStudent
                             ? 'font-semibold text-slate-800 dark:text-slate-100'
-                            : 'text-slate-400 italic'"
+                            : 'text-slate-600 dark:text-slate-400 italic'"
                         >
                           {{ leaderStudent?.name ?? '（自動帶入）' }}
                         </span>
                       </div>
-                      <span v-if="leaderState() === 'err'" class="text-xs text-red-500">
+                      <span v-if="leaderState() === 'err'" class="text-xs text-red-700 dark:text-red-400">
                         {{ leaderIssue }}
                       </span>
                     </div>
@@ -741,7 +741,7 @@ function resetF2() {
                   <td class="cell-body">
                     <div class="flex items-center gap-4 flex-wrap">
                       <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 dark:text-slate-400">學號：</span>
+                        <span class="text-xs text-slate-600 dark:text-slate-400">學號：</span>
                         <input
                           v-model="f1.members[i]"
                           class="input !w-32 !py-1"
@@ -753,17 +753,17 @@ function resetF2() {
                         />
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 dark:text-slate-400">姓名：</span>
+                        <span class="text-xs text-slate-600 dark:text-slate-400">姓名：</span>
                         <span
                           class="text-sm min-w-[4rem]"
                           :class="memberStudents[i]
                             ? 'font-semibold text-slate-800 dark:text-slate-100'
-                            : 'text-slate-400 italic'"
+                            : 'text-slate-600 dark:text-slate-400 italic'"
                         >
                           {{ memberStudents[i]?.name ?? '（選填）' }}
                         </span>
                       </div>
-                      <span v-if="memberState(i) === 'err'" class="text-xs text-red-500">
+                      <span v-if="memberState(i) === 'err'" class="text-xs text-red-700 dark:text-red-400">
                         {{ memberIssues[i] }}
                       </span>
                     </div>
@@ -790,7 +790,7 @@ function resetF2() {
                       <option value="">— 選擇類別 —</option>
                       <option v-for="c in CATEGORY_OPTIONS" :key="c" :value="c">{{ c }}</option>
                     </select>
-                    <p v-if="!CATEGORY_OPTIONS.length" class="text-xs text-slate-400 mt-1">
+                    <p v-if="!CATEGORY_OPTIONS.length" class="text-xs text-slate-600 mt-1 dark:text-slate-400">
                       類別選項尚未設定
                     </p>
                   </td>
@@ -813,8 +813,8 @@ function resetF2() {
               <!-- footer / submit -->
               <div class="flex items-center justify-between px-5 py-4
                           border-t border-slate-200 dark:border-[#2a3347]">
-                <p v-if="f1Error" class="text-sm text-red-500">{{ f1Error }}</p>
-                <span v-else class="text-xs text-slate-400">
+                <p v-if="f1Error" class="text-sm text-red-700 dark:text-red-400">{{ f1Error }}</p>
+                <span v-else class="text-xs text-slate-600 dark:text-slate-400">
                   ＊ 標記為綠色的學號表示已在系統中找到
                 </span>
                 <button @click="submitF1" class="btn-primary flex items-center gap-1.5">
@@ -831,18 +831,18 @@ function resetF2() {
                 <h3 class="font-bold text-slate-800 dark:text-slate-100">確認操作清單</h3>
                 <button
                   @click="f1Step = 'form'"
-                  class="text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                  class="text-slate-600 hover:text-red-500 transition-colors cursor-pointer dark:text-slate-400"
                   title="關閉清單"
                 >
                   <X class="w-4 h-4" />
                 </button>
               </div>
 
-              <p class="text-xs text-slate-400">
+              <p class="text-xs text-slate-600 dark:text-slate-400">
                 依左側表單內容即時更新；確認後依序執行，無法撤銷。
               </p>
 
-              <p v-if="f1ExecError" class="text-sm text-red-500">{{ f1ExecError }}</p>
+              <p v-if="f1ExecError" class="text-sm text-red-700 dark:text-red-400">{{ f1ExecError }}</p>
 
               <button
                 @click="executeF1"
@@ -868,7 +868,7 @@ function resetF2() {
                     <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
                       {{ op.text }}
                     </p>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ op.sub }}</p>
+                    <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">{{ op.sub }}</p>
                   </div>
                 </div>
               </div>
@@ -881,10 +881,10 @@ function resetF2() {
             <div class="card p-10 text-center space-y-4">
               <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/20
                           flex items-center justify-center mx-auto">
-                <CheckCircle class="w-7 h-7 text-emerald-500" />
+                <CheckCircle class="w-7 h-7 text-emerald-800 dark:text-emerald-400" />
               </div>
               <h3 class="font-bold text-slate-800 dark:text-slate-100 text-lg">執行完成</h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400">
+              <p class="text-sm text-slate-600 dark:text-slate-400">
                 組別已建立，組員已分配完畢。
               </p>
               <button @click="resetF1" class="btn-primary">建立另一份</button>
@@ -902,7 +902,7 @@ function resetF2() {
 
               <!-- header -->
               <div class="text-center py-4 px-6 border-b border-slate-300 dark:border-[#2a3347]">
-                <p class="text-[10px] font-mono text-slate-400 mb-1">附件二　FM-20430-015</p>
+                <p class="text-[10px] font-mono text-slate-600 mb-1 dark:text-slate-400">附件二　FM-20430-015</p>
                 <h2 class="text-base font-bold text-slate-800 dark:text-slate-100">
                   多媒體遊戲發展與應用系更改專題指導老師申請表
                 </h2>
@@ -958,7 +958,7 @@ function resetF2() {
                           class="input !py-1 mt-2"
                           placeholder="輸入新專題題目"
                         />
-                        <p v-if="f2Cond" class="text-xs mt-1.5 font-medium text-blue-600 dark:text-cyan-400">
+                        <p v-if="f2Cond" class="text-xs mt-1.5 font-medium text-blue-700 dark:text-cyan-400">
                           判定：{{ F2_COND_LABEL[f2Cond] }}
                         </p>
                       </td>
@@ -975,7 +975,7 @@ function resetF2() {
                             {{ t.name }}
                           </option>
                         </select>
-                        <p v-if="f2Cond === 'join' && f2DestGroup" class="text-xs text-slate-400 mt-1">
+                        <p v-if="f2Cond === 'join' && f2DestGroup" class="text-xs text-slate-600 mt-1 dark:text-slate-400">
                           須與該組現任相同：{{ groupTeachers(f2DestGroup) }}
                         </p>
                       </td>
@@ -988,7 +988,7 @@ function resetF2() {
                         <span v-if="f2OrigLeader">
                           {{ f2OrigLeader.student_id }}　{{ f2OrigLeader.name }}
                         </span>
-                        <span v-else class="text-slate-400 italic">（未設定）</span>
+                        <span v-else class="text-slate-600 italic dark:text-slate-400">（未設定）</span>
                       </td>
                       <td class="cell-body">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -1005,11 +1005,11 @@ function resetF2() {
                             class="text-sm"
                             :class="f2NewLeader
                               ? 'font-semibold text-slate-800 dark:text-slate-100'
-                              : 'text-slate-400 italic'"
+                              : 'text-slate-600 dark:text-slate-400 italic'"
                           >
                             {{ f2NewLeader?.name ?? '（自動帶入）' }}
                           </span>
-                          <span v-if="f2LeaderState() === 'err'" class="text-xs text-red-500">
+                          <span v-if="f2LeaderState() === 'err'" class="text-xs text-red-700 dark:text-red-400">
                             {{ f2LeaderIssue }}
                           </span>
                         </div>
@@ -1025,7 +1025,7 @@ function resetF2() {
                         <span v-if="f2OrigMembers[i]">
                           {{ f2OrigMembers[i].student_id }}　{{ f2OrigMembers[i].name }}
                         </span>
-                        <span v-else class="text-slate-300 dark:text-slate-600">—</span>
+                        <span v-else class="text-slate-300 dark:text-slate-400">—</span>
                       </td>
                       <td class="cell-body">
                         <div v-if="i < f2.new_members.length" class="flex items-center gap-2 flex-wrap">
@@ -1042,23 +1042,23 @@ function resetF2() {
                             class="text-sm"
                             :class="f2NewMembers[i]
                               ? 'font-semibold text-slate-800 dark:text-slate-100'
-                              : 'text-slate-400 italic'"
+                              : 'text-slate-600 dark:text-slate-400 italic'"
                           >
                             {{ f2NewMembers[i]?.name ?? '' }}
                           </span>
-                          <span v-if="f2MemberState(i) === 'err'" class="text-xs text-red-500">
+                          <span v-if="f2MemberState(i) === 'err'" class="text-xs text-red-700 dark:text-red-400">
                             {{ f2MemberIssues[i] }}
                           </span>
                           <button
                             v-if="f2.new_members.length > 1"
                             @click="removeF2Member(i)"
-                            class="ml-auto text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                            class="ml-auto text-slate-600 dark:text-slate-400 hover:text-red-700 dark:hover:text-red-400 transition-colors cursor-pointer"
                             title="移除這一列"
                           >
                             <X class="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <span v-else class="text-slate-300 dark:text-slate-600">—</span>
+                        <span v-else class="text-slate-300 dark:text-slate-400">—</span>
                       </td>
                     </tr>
                     <tr v-if="f2.new_members.length < 6">
@@ -1067,7 +1067,7 @@ function resetF2() {
                       <td class="cell-body">
                         <button
                           @click="addF2Member"
-                          class="flex items-center gap-1 text-xs text-blue-600 dark:text-cyan-400
+                          class="flex items-center gap-1 text-xs text-blue-700 dark:text-cyan-400
                                  hover:underline cursor-pointer"
                         >
                           <Plus class="w-3.5 h-3.5" /> 新增一位
@@ -1118,8 +1118,8 @@ function resetF2() {
               <!-- footer / submit -->
               <div class="flex items-center justify-between px-5 py-4
                           border-t border-slate-200 dark:border-[#2a3347]">
-                <p v-if="f2Error" class="text-sm text-red-500">{{ f2Error }}</p>
-                <span v-else class="text-xs text-slate-400">
+                <p v-if="f2Error" class="text-sm text-red-700 dark:text-red-400">{{ f2Error }}</p>
+                <span v-else class="text-xs text-slate-600 dark:text-slate-400">
                   ＊ 異動類型由「新專題名稱」自動判定；執行以「新」欄名單為準
                 </span>
                 <button @click="submitF2" class="btn-primary flex items-center gap-1.5">
@@ -1136,21 +1136,21 @@ function resetF2() {
                 <h3 class="font-bold text-slate-800 dark:text-slate-100">確認操作清單</h3>
                 <button
                   @click="f2Step = 'form'"
-                  class="text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                  class="text-slate-600 hover:text-red-500 transition-colors cursor-pointer dark:text-slate-400"
                   title="關閉清單"
                 >
                   <X class="w-4 h-4" />
                 </button>
               </div>
 
-              <p class="text-xs font-medium text-blue-600 dark:text-cyan-400">
+              <p class="text-xs font-medium text-blue-700 dark:text-cyan-400">
                 判定：{{ F2_COND_LABEL[f2Cond] }}
               </p>
-              <p class="text-xs text-slate-400">
+              <p class="text-xs text-slate-600 dark:text-slate-400">
                 依左側表單內容即時更新；確認後依序執行，無法撤銷。
               </p>
 
-              <p v-if="f2ExecError" class="text-sm text-red-500">{{ f2ExecError }}</p>
+              <p v-if="f2ExecError" class="text-sm text-red-700 dark:text-red-400">{{ f2ExecError }}</p>
 
               <button
                 @click="executeF2"
@@ -1176,7 +1176,7 @@ function resetF2() {
                     <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
                       {{ op.text }}
                     </p>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ op.sub }}</p>
+                    <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">{{ op.sub }}</p>
                   </div>
                 </div>
               </div>
@@ -1189,10 +1189,10 @@ function resetF2() {
             <div class="card p-10 text-center space-y-4">
               <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/20
                           flex items-center justify-center mx-auto">
-                <CheckCircle class="w-7 h-7 text-emerald-500" />
+                <CheckCircle class="w-7 h-7 text-emerald-800 dark:text-emerald-400" />
               </div>
               <h3 class="font-bold text-slate-800 dark:text-slate-100 text-lg">執行完成</h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400">
+              <p class="text-sm text-slate-600 dark:text-slate-400">
                 專題異動已完成。
               </p>
               <button @click="resetF2" class="btn-primary">建立另一份</button>
@@ -1219,7 +1219,7 @@ function resetF2() {
 }
 .cell-head {
   @apply px-4 py-1.5 text-xs font-semibold text-center
-         text-slate-500 dark:text-slate-400
+         text-slate-600 dark:text-slate-400
          bg-slate-100 dark:bg-[#1a2030]
          border border-slate-200 dark:border-[#2a3347];
 }

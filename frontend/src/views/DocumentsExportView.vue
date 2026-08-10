@@ -264,17 +264,17 @@ async function downloadSignin(list, tag) {
     <div v-if="!auth.isEditor"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-400" />
+        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
       </div>
       <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-400">此頁面僅限編輯者使用</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
     </div>
 
     <div v-else class="flex gap-5 h-full">
 
       <!-- ═══ LEFT: doc sidebar ═══ -->
       <div class="w-44 flex-shrink-0 flex flex-col gap-1.5 print:hidden">
-        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2">
+        <p class="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-1 mb-2 dark:text-slate-400">
           文件輸出
         </p>
         <button
@@ -350,7 +350,7 @@ async function downloadSignin(list, tag) {
               <div>
                 <label class="label">班級前綴</label>
                 <input v-model="classPrefix" class="input" placeholder="日三" />
-                <p class="mt-1 text-[11px] text-slate-400">會接上學生的班別字，例如「日三」＋「甲」＝ 日三甲</p>
+                <p class="mt-1 text-[11px] text-slate-600 dark:text-slate-400">會接上學生的班別字，例如「日三」＋「甲」＝ 日三甲</p>
               </div>
             </div>
             <p v-if="sheetYear" class="text-center text-sm font-semibold text-slate-700 dark:text-slate-200 pt-1">
@@ -362,14 +362,14 @@ async function downloadSignin(list, tag) {
           <div v-if="!sheetYear"
                class="flex flex-col items-center justify-center h-48 gap-3 text-center">
             <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-              <FileSearch class="w-6 h-6 text-slate-400" />
+              <FileSearch class="w-6 h-6 text-slate-600 dark:text-slate-400" />
             </div>
             <p class="font-semibold text-slate-700 dark:text-slate-300">選擇級以產生簽到表</p>
           </div>
           <div v-else-if="!activeOrder.length"
                class="flex flex-col items-center justify-center h-48 gap-3 text-center">
             <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-              <FileSearch class="w-6 h-6 text-slate-400" />
+              <FileSearch class="w-6 h-6 text-slate-600 dark:text-slate-400" />
             </div>
             <p class="font-semibold text-slate-700 dark:text-slate-300">此級沒有任何組別</p>
           </div>
@@ -377,7 +377,7 @@ async function downloadSignin(list, tag) {
           <template v-else>
             <div class="card p-4 space-y-3">
               <div class="flex items-center justify-between gap-3 flex-wrap">
-                <p class="text-xs text-slate-500 dark:text-slate-400 min-w-0 flex-1">
+                <p class="text-xs text-slate-600 dark:text-slate-400 min-w-0 flex-1">
                   {{ signinDoc.hint }}
                 </p>
                 <div class="flex items-center gap-2">
@@ -411,11 +411,11 @@ async function downloadSignin(list, tag) {
                     @drop.prevent="onCatDragEnd"
                     @dragend="onCatDragEnd"
                   >
-                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-600 dark:text-slate-400" />
                     <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">
                       {{ g.category || '未分類' }}
                     </span>
-                    <span class="text-[10px] font-mono text-slate-400">{{ categoryCount(g) }} 組</span>
+                    <span class="text-[10px] font-mono text-slate-600 dark:text-slate-400">{{ categoryCount(g) }} 組</span>
                   </li>
 
                   <li
@@ -432,20 +432,20 @@ async function downloadSignin(list, tag) {
                     @drop.prevent="onDragEnd"
                     @dragend="onDragEnd"
                   >
-                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-400 dark:text-slate-500" />
-                    <span class="id-mono w-6 flex-shrink-0 text-slate-400">{{ i + 1 }}</span>
+                    <GripVertical class="w-3.5 h-3.5 flex-shrink-0 text-slate-600 dark:text-slate-400" />
+                    <span class="id-mono w-6 flex-shrink-0 text-slate-600 dark:text-slate-400">{{ i + 1 }}</span>
                     <span v-if="signinTab !== 'category'"
-                          class="w-20 flex-shrink-0 truncate text-slate-500 dark:text-slate-400"
+                          class="w-20 flex-shrink-0 truncate text-slate-600 dark:text-slate-400"
                           :title="g.category || ''">{{ g.category || '—' }}</span>
                     <span class="flex-1 min-w-0 truncate text-slate-800 dark:text-slate-200"
                           :title="g.name">{{ g.name }}</span>
-                    <span class="w-28 flex-shrink-0 truncate text-xs text-slate-500 dark:text-slate-400"
+                    <span class="w-28 flex-shrink-0 truncate text-xs text-slate-600 dark:text-slate-400"
                           :title="teacherLabel(g) || '未指定指導老師'">{{ teacherLabel(g) || '—' }}</span>
-                    <span class="w-20 flex-shrink-0 truncate text-xs text-amber-600 dark:text-amber-400">
+                    <span class="w-20 flex-shrink-0 truncate text-xs text-amber-800 dark:text-amber-400">
                       <StudentName v-if="leaderOf(g)" :student="leaderOf(g)" />
                       <template v-else>—</template>
                     </span>
-                    <span class="w-10 flex-shrink-0 text-right text-xs text-slate-400">
+                    <span class="w-10 flex-shrink-0 text-right text-xs text-slate-600 dark:text-slate-400">
                       {{ groupMembers(g).length }} 人
                     </span>
                   </li>
@@ -459,10 +459,10 @@ async function downloadSignin(list, tag) {
         <div v-else-if="!group"
              class="flex flex-col items-center justify-center h-64 gap-3 text-center">
           <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-            <FileSearch class="w-6 h-6 text-slate-400" />
+            <FileSearch class="w-6 h-6 text-slate-600 dark:text-slate-400" />
           </div>
           <p class="font-semibold text-slate-700 dark:text-slate-300">選擇組別以產生文件</p>
-          <p class="text-sm text-slate-400">選擇後將自動帶入組別資料，可直接列印</p>
+          <p class="text-sm text-slate-600 dark:text-slate-400">選擇後將自動帶入組別資料，可直接列印</p>
         </div>
 
         <!-- ─── 文件1：出席表 ──────────────────────────────────── -->
@@ -497,14 +497,14 @@ async function downloadSignin(list, tag) {
                   <th class="a-th">討論主題</th>
                   <th v-for="m in allMembers" :key="m.id" class="a-th w-20">
                     <div class="font-medium">{{ m.name }}</div>
-                    <div class="text-[10px] font-normal text-slate-500">{{ m.student_id }}</div>
+                    <div class="text-[10px] font-normal text-slate-600 dark:text-slate-400">{{ m.student_id }}</div>
                   </th>
                   <th class="a-th w-20">老師確認</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="n in ATTENDANCE_ROWS" :key="n">
-                  <td class="a-td text-center text-slate-400">{{ n }}</td>
+                  <td class="a-td text-center text-slate-600 dark:text-slate-400">{{ n }}</td>
                   <td class="a-td"></td>
                   <td class="a-td"></td>
                   <td class="a-td"></td>
@@ -516,7 +516,7 @@ async function downloadSignin(list, tag) {
             </table>
 
             <!-- footer -->
-            <div class="px-6 py-4 text-xs text-slate-400 border-t border-slate-300">
+            <div class="px-6 py-4 text-xs text-slate-600 border-t border-slate-300 dark:text-slate-400">
               組長簽名：＿＿＿＿＿＿　　指導老師簽名：＿＿＿＿＿＿　　日期：＿＿＿＿ 年 ＿＿ 月 ＿＿ 日
             </div>
           </div>
