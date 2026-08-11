@@ -647,13 +647,13 @@ async function removeReview() {
                   ><span class="block max-w-[4.5rem] truncate mx-auto">{{ reviewerShort(r) }}</span></th>
                   <th
                     v-for="c in [
-                      { key: 'internal', label: '系上', title: '系上老師平均' },
-                      { key: 'external', label: '外審', title: '外審委員平均' },
-                      { key: 'final', label: '總分', title: '加權總分（系上 × 系上% ＋ 外審 × 外審%）' },
+                      { key: 'internal', label: '系上平均', title: '系上老師平均' },
+                      { key: 'external', label: '外審平均', title: '外審委員平均' },
+                      { key: 'final', label: '加權總分', title: '加權總分（系上 × 系上% ＋ 外審 × 外審%）' },
                     ]" :key="c.key"
-                    class="w-20 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-600 text-center
-                           whitespace-nowrap cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300
-                           border-l border-slate-200 dark:border-[#2a3347] dark:text-slate-400"
+                    class="w-24 px-4 py-2 text-xs font-semibold text-slate-700 text-center
+                           whitespace-nowrap cursor-pointer select-none hover:text-blue-700 dark:hover:text-cyan-400
+                           border-l border-slate-200 dark:border-[#2a3347] dark:text-slate-200"
                     :title="`${c.title}（點擊排序）`"
                     @click="sortBy(c.key)"
                   >
