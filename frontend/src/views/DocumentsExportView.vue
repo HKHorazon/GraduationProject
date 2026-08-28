@@ -319,7 +319,7 @@ async function downloadSignin(list, tag) {
         </div>
 
         <!-- ─── 文件3：專題組別簽到表（書面審查・Word）────────── -->
-        <div v-if="signinDoc" class="max-w-3xl space-y-5">
+        <div v-if="signinDoc" class="space-y-5">
 
           <!-- config -->
           <div class="card p-4 space-y-3">
@@ -376,7 +376,7 @@ async function downloadSignin(list, tag) {
 
           <template v-else>
             <div class="card p-4 space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div class="space-y-3">
                 <p class="text-xs text-slate-600 dark:text-slate-400 min-w-0 flex-1">
                   {{ signinDoc.hint }}
                 </p>

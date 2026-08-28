@@ -14,6 +14,7 @@ const routes = [
   { path: '/audit-logs', name: 'AuditLogs', component: () => import('@/views/AuditLogView.vue') },
   { path: '/accounts', name: 'Accounts', component: () => import('@/views/AccountsView.vue') },
   { path: '/permissions', name: 'Permissions', component: () => import('@/views/PermissionsView.vue') },
+  { path: '/password', name: 'Password', component: () => import('@/views/PasswordView.vue') },
   { path: '/about', name: 'About', component: () => import('@/views/AboutView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/students' },
 ]

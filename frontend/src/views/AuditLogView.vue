@@ -137,7 +137,7 @@ function fmtTime(iso) {
 
     <div v-else class="w-full space-y-4">
       <!-- header -->
-      <div class="flex items-center justify-between">
+      <div class="space-y-3">
         <div>
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <History class="w-5 h-5 text-blue-700 dark:text-cyan-400" /> 異動紀錄

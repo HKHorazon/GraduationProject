@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { Search, X, ArrowRightLeft, UserMinus, UserPlus, Check, UserX, ChevronRight, GraduationCap, Users, ShieldOff } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
+import { INACTIVE_STATUSES, statusLabel } from '@/lib/studentStatus'
 import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
@@ -45,6 +46,7 @@ const activeTab = ref(null)
 const targetGroupId = ref('')
 const toast = ref(null)
 const withdrawStep = ref(1)
+const withdrawType = ref(INACTIVE_STATUSES[0].value)
 const busy = ref(false)
 
 function getStudentTeacherNames(s) {
@@ -105,7 +107,7 @@ const sameYearGroups = computed(() => {
     g.id !== selected.value.group_id
   )
 })
-const isInactive = computed(() => selected.value?.status === 'inactive')
+const isInactive = computed(() => !!selected.value && selected.value.status !== 'active')
 const hasGroup = computed(() => !!selected.value?.group_id)
 
 const TABS = [
@@ -132,7 +134,7 @@ const TABS = [
   },
   {
     key: 'withdraw',
-    label: '休退學',
+    label: '休退學／抵免',
     icon: UserX,
     enabled: () => !isInactive.value,
     color: 'red',
@@ -150,6 +152,7 @@ function clickTab(tab) {
   activeTab.value = activeTab.value === tab.key ? null : tab.key
   targetGroupId.value = ''
   withdrawStep.value = 1
+  withdrawType.value = INACTIVE_STATUSES[0].value
 }
 
 function showToast(type, msg) {
@@ -204,9 +207,10 @@ async function confirmJoin() {
 async function confirmWithdraw() {
   if (!selected.value) return
   const fromGroup = currentGroup.value
-  if (await applyPatch({ status: 'inactive', group_id: null })) {
+  const label = statusLabel(withdrawType.value)
+  if (await applyPatch({ status: withdrawType.value, group_id: null })) {
     const suffix = fromGroup ? `，已自「${fromGroup.name}」移除` : ''
-    showToast('warning', `${selected.value.name} 已標記為休退學${suffix}`)
+    showToast('warning', `${selected.value.name} 已標記為${label}${suffix}`)
     activeTab.value = null
     withdrawStep.value = 1
   }
@@ -298,7 +302,7 @@ async function confirmWithdraw() {
                 <!-- LEFT: 名字 / 學號 -->
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium truncate"
-                     :class="s.status === 'inactive' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-slate-200'">
+                     :class="s.status !== 'active' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-slate-200'">
                     {{ s.name }}
                   </p>
                   <p class="text-xs font-mono text-slate-600 tracking-wider truncate dark:text-slate-400">{{ s.student_id }}</p>
@@ -307,7 +311,7 @@ async function confirmWithdraw() {
                 <!-- MIDDLE: 學年+班級 / 指導老師 -->
                 <div class="min-w-0 max-w-[42%] flex flex-col items-end gap-0.5 text-right">
                   <p class="text-xs truncate w-full"
-                     :class="s.status === 'inactive' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600 dark:text-slate-300'">
+                     :class="s.status !== 'active' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600 dark:text-slate-300'">
                     {{ rocYear(s.school_year) }}{{ s.class_ || '' }}
                   </p>
                   <p class="text-[11px] text-slate-600 truncate w-full dark:text-slate-400">
@@ -318,14 +322,14 @@ async function confirmWithdraw() {
                 <!-- FAR RIGHT: 組號 -->
                 <div class="w-11 h-9 rounded-lg flex items-center justify-center flex-shrink-0
                             text-sm font-display font-bold leading-none text-center border"
-                     :class="s.status === 'inactive'
+                     :class="s.status !== 'active'
                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-500 border-amber-300 dark:border-amber-700/40'
                        : s.group_id
                          ? (selected?.id === s.id
                              ? 'bg-cyan-400/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/40'
                              : 'bg-slate-100 dark:bg-dark-border text-cyan-800 dark:text-cyan-400 border-slate-200 dark:border-dark-border')
                          : 'bg-slate-100 dark:bg-dark-border text-slate-600 dark:text-slate-400 border-slate-200 dark:border-dark-border'">
-                  {{ s.status === 'inactive' ? '休退' : (s.group_id ? groupNumber(s.group_id) : '—') }}
+                  {{ s.status !== 'active' ? statusLabel(s.status) : (s.group_id ? groupNumber(s.group_id) : '—') }}
                 </div>
               </div>
             </button>
@@ -359,7 +363,7 @@ async function confirmWithdraw() {
                  class="flex items-center gap-2 px-4 py-2 text-xs font-mono tracking-wider
                         bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30 text-amber-800 dark:text-amber-400">
               <UserX class="w-3.5 h-3.5" />
-              INACTIVE — 此學生已休退學，無法調整組別
+              INACTIVE — 此學生已{{ statusLabel(selected.status) }}，無法調整組別
             </div>
 
             <div class="bg-white dark:bg-dark-card px-5 py-4">
@@ -564,6 +568,19 @@ async function confirmWithdraw() {
 
               <!-- WITHDRAW step 1 -->
               <div v-else-if="activeTab === 'withdraw' && withdrawStep === 1" class="space-y-4">
+                <div>
+                  <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">選擇原因</p>
+                  <div class="flex gap-2">
+                    <button v-for="opt in INACTIVE_STATUSES" :key="opt.value"
+                      @click="withdrawType = opt.value"
+                      class="flex-1 py-2 rounded-lg text-sm font-display font-semibold border transition-colors cursor-pointer"
+                      :class="withdrawType === opt.value
+                        ? 'border-red-400 bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/50'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-dark-border dark:text-slate-400 dark:hover:border-slate-600'">
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
                 <div class="rounded-lg border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/5 px-4 py-3 space-y-2">
                   <p class="text-xs font-mono text-red-700 dark:text-red-400 tracking-widest uppercase font-semibold">⚠ WARNING</p>
                   <ul class="space-y-1 text-xs text-slate-600 dark:text-slate-400 font-mono">
@@ -605,7 +622,7 @@ async function confirmWithdraw() {
                     確定將
                     <span class="text-red-700 dark:text-red-400 font-semibold font-display">{{ selected.name }}</span>
                     <span class="font-mono text-xs text-slate-600 ml-1 dark:text-slate-400">（{{ selected.student_id }}）</span>
-                    標記為休退學？
+                    標記為{{ statusLabel(withdrawType) }}？
                   </p>
                   <p class="text-xs font-mono text-red-700/70 dark:text-red-400">此操作將立即生效。</p>
                 </div>
@@ -614,7 +631,7 @@ async function confirmWithdraw() {
                     class="flex-1 py-2.5 rounded-lg text-sm font-display font-bold tracking-wide transition-all cursor-pointer
                            bg-red-600 text-white hover:bg-red-700
                            shadow-[0_0_16px_rgba(239,68,68,0.35)] hover:shadow-[0_0_24px_rgba(239,68,68,0.5)]">
-                    確認休退學
+                    確認{{ statusLabel(withdrawType) }}
                   </button>
                   <button @click="withdrawStep = 1"
                     class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer

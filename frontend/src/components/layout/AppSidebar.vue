@@ -6,7 +6,7 @@ import SidebarGroup from './SidebarGroup.vue'
 import SidebarItem from './SidebarItem.vue'
 import {
   Search, Users, LayoutList, RefreshCw,
-  UserMinus, FolderCog, ListOrdered, FileInput, FileOutput, FileStack, Database, FolderOpen, History, User, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight, ClipboardCheck
+  UserMinus, FolderCog, ListOrdered, FileInput, FileOutput, FileStack, Database, FolderOpen, History, User, KeyRound, Settings, ShieldCheck, GraduationCap, ChevronLeft, ChevronRight, ClipboardCheck
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -73,9 +73,11 @@ function toggleCollapse() {
         <SidebarItem v-if="perms.canAccess('audit-logs', auth.role)" to="/audit-logs" label="異動紀錄" :icon="History" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <SidebarGroup v-if="auth.isSuperAdmin" label="帳號" :icon="User" :collapsed="collapsed">
-        <SidebarItem to="/accounts" label="帳號管理" :icon="Settings" :collapsed="collapsed" />
-        <SidebarItem to="/permissions" label="權限設定" :icon="ShieldCheck" :collapsed="collapsed" />
+      <!-- 修改密碼不受權限設定管控：登入後人人可用 -->
+      <SidebarGroup v-if="auth.isLoggedIn" label="帳號" :icon="User" :collapsed="collapsed">
+        <SidebarItem to="/password" label="修改密碼" :icon="KeyRound" :collapsed="collapsed" />
+        <SidebarItem v-if="auth.isSuperAdmin" to="/accounts" label="帳號管理" :icon="Settings" :collapsed="collapsed" />
+        <SidebarItem v-if="auth.isSuperAdmin" to="/permissions" label="權限設定" :icon="ShieldCheck" :collapsed="collapsed" />
       </SidebarGroup>
     </nav>
 

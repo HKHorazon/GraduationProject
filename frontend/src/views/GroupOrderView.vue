@@ -97,7 +97,7 @@ async function save() {
     <div class="space-y-4">
       <!-- Header + year picker -->
       <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="space-y-3">
           <div>
             <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">組別排序</h2>
             <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">

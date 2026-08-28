@@ -120,7 +120,7 @@ async function submitAdd() {
 
     <template v-else>
       <!-- Header -->
-      <div class="flex items-center justify-between mb-5">
+      <div class="space-y-3 mb-5">
         <div>
           <h2 class="font-bold text-slate-800 dark:text-slate-100">帳號管理</h2>
           <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">共 {{ list.length }} 個帳號</p>
@@ -174,7 +174,7 @@ async function submitAdd() {
                   </span>
                 </td>
                 <td class="px-4 py-3">
-                  <div class="flex items-center justify-end gap-1">
+                  <div class="flex items-center gap-1">
                     <button
                       @click="startEdit(acc)"
                       class="px-2.5 py-1 rounded-md text-xs text-slate-600 dark:text-slate-400
@@ -238,7 +238,7 @@ async function submitAdd() {
                   </label>
                 </td>
                 <td class="px-4 py-2">
-                  <div class="flex items-center justify-end gap-1">
+                  <div class="flex items-center gap-1">
                     <button
                       @click="saveEdit"
                       class="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer
@@ -285,7 +285,7 @@ async function submitAdd() {
               <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">此操作無法復原。</p>
             </div>
           </div>
-          <div class="flex gap-2 justify-end">
+          <div class="flex gap-2">
             <button
               @click="confirmDelete = null"
               class="px-4 py-2 text-xs rounded-lg border cursor-pointer
@@ -396,7 +396,7 @@ async function submitAdd() {
 
             <p v-if="addError" class="text-xs text-red-700 dark:text-red-400">{{ addError }}</p>
 
-            <div class="flex gap-2 justify-end pt-1">
+            <div class="flex gap-2 pt-1">
               <button
                 type="button"
                 @click="addOpen = false"

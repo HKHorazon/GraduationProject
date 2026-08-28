@@ -14,3 +14,6 @@ __pycache__/
 
 # local reference spreadsheets (student data, not for repo)
 reference/
+
+# local DB dumps taken before an import (real student data)
+backend/_backup_*.json

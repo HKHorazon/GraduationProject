@@ -1,12 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus } from 'lucide-vue-next'
+import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus, Download } from 'lucide-vue-next'
+import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear, yearClass } from '@/lib/year'
+import { statusLabel } from '@/lib/studentStatus'
+import { studentRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
@@ -37,7 +40,7 @@ const filterYear = ref('')
 const filterTeacher = ref('')
 const filterCategory = ref('')
 const filterGrouped = ref('')
-const showInactive = ref(false)   // 休學/非在學人員預設隱藏
+const showInactive = ref(false)   // 休學/退學/抵免人員預設隱藏
 
 const years = computed(() => [...new Set(data.students.map(s => s.school_year))].sort().reverse())
 const allTeachers = computed(() => data.teachers.map(t => t.name))
@@ -114,6 +117,11 @@ const cols = [
   { key: 'project',     label: '專題名稱' },
 ]
 
+function exportExcel() {
+  const rows = studentRows(filtered.value, { groups: data.groups, teachers: data.teachers })
+  XLSX.writeFile(buildWorkbook({ 學生: rows }), exportFileName('學生列表'))
+}
+
 function studentActions(s) {
   return [
     {
@@ -132,11 +140,16 @@ function studentActions(s) {
     <div class="space-y-4">
       <!-- Header + Filters -->
       <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between">
+        <div class="space-y-3">
           <div>
             <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">學生列表</h2>
             <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">共 {{ filtered.length }} 位學生</p>
           </div>
+          <button class="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                  :disabled="filtered.length === 0" @click="exportExcel">
+            <Download class="w-3.5 h-3.5" />
+            匯出 Excel
+          </button>
         </div>
         <div class="flex gap-2 flex-wrap">
           <input v-model="search" class="input w-48 text-xs" placeholder="搜尋姓名 / 學號 / 專題…" />
@@ -161,7 +174,7 @@ function studentActions(s) {
                         text-slate-600 dark:text-slate-300">
             <input type="checkbox" v-model="showInactive"
                    class="accent-red-500 dark:accent-red-400 cursor-pointer" />
-            顯示休學人員
+            顯示休退學／抵免人員
           </label>
         </div>
       </div>
@@ -207,7 +220,7 @@ function studentActions(s) {
                   <span v-if="s.status !== 'active'"
                         class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium
                                border border-red-300 dark:border-red-700/50
-                               bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">休學</span>
+                               bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">{{ statusLabel(s.status) }}</span>
                 </td>
                 <td class="px-4 py-3">
                   <span v-if="s.group_id" class="flex items-center gap-1">

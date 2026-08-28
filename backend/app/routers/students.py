@@ -11,7 +11,13 @@ from ..schemas import StudentCreate, StudentOut, StudentUpdate
 
 router = APIRouter()
 
-STATUS_LABEL = {"active": "在學", "inactive": "休退學"}
+STATUS_LABEL = {
+    "active": "在學",
+    "suspended": "休學",
+    "withdrawn": "退學",
+    "exempted": "抵免",
+    "inactive": "休退學",  # legacy rows
+}
 
 
 def _group_label(db: Session, group_id: str | None) -> str:

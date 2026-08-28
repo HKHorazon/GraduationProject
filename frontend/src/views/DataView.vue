@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import * as XLSX from 'xlsx-js-style'
+import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
+import { studentRows, groupRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import {
   UserPlus, Upload, GraduationCap, ShieldOff, Check, FileSpreadsheet, X,
   LayoutDashboard, FolderPlus, Users, LayoutList, Download,
@@ -45,7 +46,7 @@ function toRoc(y) {
 // ───────── 總覽 (overview) ─────────
 const stats = computed(() => {
   const s = data.students
-  const active = s.filter((x) => x.status !== 'inactive').length
+  const active = s.filter((x) => x.status === 'active').length
   const grouped = s.filter((x) => x.group_id).length
   return {
     students: s.length,
@@ -67,44 +68,27 @@ const byYear = computed(() =>
   }))
 )
 
-function teacherNames(g) {
-  return g.teacher_ids.map((tid) => data.teachers.find((t) => t.id === tid)?.name ?? tid).join('、')
-}
-
 function exportStudents() {
-  const wb = XLSX.utils.book_new()
+  const sheets = {}
   for (const y of years.value) {
-    const rows = data.students
-      .filter((s) => s.school_year === y)
-      .map((s) => ({
-        學號: s.student_id,
-        姓名: s.name,
-        班級: s.class_ ?? '',
-        狀態: s.status === 'inactive' ? '休退學' : '在學',
-        組別: data.groups.find((g) => g.id === s.group_id)?.name ?? '',
-      }))
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `${rocYear(y)}學年`)
+    sheets[`${rocYear(y)}學年`] = studentRows(
+      data.students.filter((s) => s.school_year === y),
+      { groups: data.groups, teachers: data.teachers },
+    )
   }
-  XLSX.writeFile(wb, `學生資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  XLSX.writeFile(buildWorkbook(sheets), exportFileName('學生資料'))
 }
 
 function exportGroups() {
-  const wb = XLSX.utils.book_new()
+  const sheets = {}
   const groupYears = [...new Set(data.groups.map((g) => g.school_year))].sort().reverse()
   for (const y of groupYears) {
-    const rows = data.groups
-      .filter((g) => g.school_year === y)
-      .sort((a, b) => a.number - b.number)
-      .map((g) => ({
-        組號: g.number,
-        專題名稱: g.name,
-        類別: g.category ?? '',
-        指導老師: teacherNames(g),
-        組員數: data.students.filter((s) => s.group_id === g.id).length,
-      }))
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `${rocYear(y)}學年`)
+    sheets[`${rocYear(y)}學年`] = groupRows(
+      data.groups.filter((g) => g.school_year === y).sort((a, b) => a.number - b.number),
+      { students: data.students, teachers: data.teachers },
+    )
   }
-  XLSX.writeFile(wb, `組別資料_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  XLSX.writeFile(buildWorkbook(sheets), exportFileName('組別資料'))
 }
 
 // ───────── 新增學生 (single) ─────────
@@ -224,12 +208,6 @@ function mapKey(raw) {
   }
   return null
 }
-function normStatus(v) {
-  const s = String(v ?? '').trim()
-  if (!s) return 'active'
-  return /休|退|inactive|停/i.test(s) ? 'inactive' : 'active'
-}
-
 const bulkRows = ref([])
 const bulkFileName = ref('')
 const bulkError = ref('')
@@ -352,7 +330,7 @@ function downloadTemplate() {
               <Users class="w-4 h-4" /> 學生總數
             </div>
             <p class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ stats.students }}</p>
-            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">在學 {{ stats.active }}・休退 {{ stats.inactive }}</p>
+            <p class="text-xs text-slate-600 mt-1 dark:text-slate-400">在學 {{ stats.active }}・休退學／抵免 {{ stats.inactive }}</p>
           </div>
           <div class="card p-5">
             <div class="flex items-center gap-2 text-slate-600 text-xs mb-1 dark:text-slate-400">
@@ -418,7 +396,7 @@ function downloadTemplate() {
       </div>
 
       <!-- 新增學生 -->
-      <div v-show="tab === 'student'" class="card p-6 max-w-3xl">
+      <div v-show="tab === 'student'" class="card p-6">
         <form @submit.prevent="submitStudent" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -442,7 +420,7 @@ function downloadTemplate() {
           </div>
           <p v-if="sError" class="text-xs text-red-700 dark:text-red-400">{{ sError }}</p>
           <p v-if="sOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ sOk }}</p>
-          <div class="flex justify-end">
+          <div class="flex">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="sBusy">
               <UserPlus class="w-4 h-4" /> {{ sBusy ? '新增中…' : '新增學生' }}
             </button>
@@ -452,7 +430,7 @@ function downloadTemplate() {
       </div>
 
       <!-- 新增組別 -->
-      <div v-show="tab === 'group'" class="card p-6 max-w-3xl">
+      <div v-show="tab === 'group'" class="card p-6">
         <form @submit.prevent="submitGroup" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -491,7 +469,7 @@ function downloadTemplate() {
           </div>
           <p v-if="gError" class="text-xs text-red-700 dark:text-red-400">{{ gError }}</p>
           <p v-if="gOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ gOk }}</p>
-          <div class="flex justify-end">
+          <div class="flex">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="gBusy">
               <FolderPlus class="w-4 h-4" /> {{ gBusy ? '新增中…' : '新增組別' }}
             </button>
@@ -502,24 +480,22 @@ function downloadTemplate() {
 
       <!-- 批次匯入 -->
       <div v-show="tab === 'bulk'" class="card p-6 space-y-4">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-2">
-            <input ref="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onFile" />
-            <button class="btn-secondary flex items-center gap-1.5" @click="fileInput?.click()">
-              <FileSpreadsheet class="w-4 h-4" /> 選擇 Excel / CSV
-            </button>
-            <span v-if="bulkFileName" class="text-xs text-slate-600 flex items-center gap-1 dark:text-slate-400">
-              {{ bulkFileName }}
-              <button @click="clearBulk" class="text-slate-600 hover:text-red-500 cursor-pointer dark:text-slate-400"><X class="w-3.5 h-3.5" /></button>
-            </span>
-          </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input ref="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onFile" />
+          <button class="btn-secondary flex items-center gap-1.5" @click="fileInput?.click()">
+            <FileSpreadsheet class="w-4 h-4" /> 選擇 Excel / CSV
+          </button>
           <button class="text-xs text-blue-700 dark:text-cyan-400 hover:underline cursor-pointer" @click="downloadTemplate">
             下載範本
           </button>
+          <span v-if="bulkFileName" class="text-xs text-slate-600 flex items-center gap-1 dark:text-slate-400">
+            {{ bulkFileName }}
+            <button @click="clearBulk" class="text-slate-600 hover:text-red-500 cursor-pointer dark:text-slate-400"><X class="w-3.5 h-3.5" /></button>
+          </span>
         </div>
 
         <p class="text-xs text-slate-600 dark:text-slate-400">
-          欄位：學號、姓名、班級、學年度、狀態（在學/休退學）。學號、姓名、學年度為必填。
+          欄位：學號、姓名、班級、學年度。學號、姓名、學年度為必填（匯入一律為在學）。
         </p>
 
         <p v-if="bulkError" class="text-xs text-red-700 dark:text-red-400">{{ bulkError }}</p>
@@ -554,7 +530,7 @@ function downloadTemplate() {
           </div>
         </div>
 
-        <div v-if="bulkRows.length" class="flex items-center justify-between">
+        <div v-if="bulkRows.length" class="space-y-3">
           <p class="text-xs text-slate-600 dark:text-slate-400">
             可匯入 <span class="font-semibold text-emerald-800 dark:text-emerald-400">{{ validRows.length }}</span> 筆
             <span v-if="hasErrors" class="text-red-700 dark:text-red-400">・{{ bulkRows.length - validRows.length }} 筆有誤(將略過)</span>
@@ -568,7 +544,7 @@ function downloadTemplate() {
       </div>
 
       <!-- 新增老師 -->
-      <div v-show="tab === 'teacher'" class="card p-6 max-w-3xl">
+      <div v-show="tab === 'teacher'" class="card p-6">
         <form @submit.prevent="submitTeacher" class="space-y-4">
           <div>
             <label class="label">老師姓名 <span class="text-red-700 dark:text-red-400">*</span></label>
@@ -576,7 +552,7 @@ function downloadTemplate() {
           </div>
           <p v-if="tError" class="text-xs text-red-700 dark:text-red-400">{{ tError }}</p>
           <p v-if="tOk" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1"><Check class="w-3.5 h-3.5" />{{ tOk }}</p>
-          <div class="flex justify-end">
+          <div class="flex">
             <button type="submit" class="btn-primary flex items-center gap-1.5" :disabled="tBusy">
               <GraduationCap class="w-4 h-4" /> {{ tBusy ? '新增中…' : '新增老師' }}
             </button>

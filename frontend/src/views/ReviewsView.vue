@@ -260,10 +260,11 @@ async function onImportFile(e) {
   error.value = ''
   message.value = ''
   try {
-    const payload = parseWorkbook(sheetCtx.value, await file.arrayBuffer())
-    if (!payload.length) throw new Error('沒有讀到任何有效的評分')
-    await data.importScores(reviewId.value, payload)
-    message.value = `已匯入 ${payload.length} 筆評分`
+    const { rows, scaled } = parseWorkbook(sheetCtx.value, await file.arrayBuffer())
+    if (!rows.length) throw new Error('沒有讀到任何有效的評分')
+    await data.importScores(reviewId.value, rows)
+    message.value = `已匯入 ${rows.length} 筆評分`
+      + (scaled.length ? `（${scaled.join('、')} 填的是各項配分，已換算成百分制，請核對）` : '')
   } catch (err) {
     error.value = err.message ?? '匯入失敗'
   } finally {
@@ -403,7 +404,7 @@ async function removeReview() {
   <AppLayout>
     <div class="space-y-4">
       <!-- Header -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div class="space-y-3">
         <div>
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <ClipboardCheck class="w-5 h-5 text-blue-700 dark:text-cyan-400" /> 審查評分
@@ -563,8 +564,9 @@ async function removeReview() {
           <input v-model="form.is_open" type="checkbox" class="cursor-pointer" /> 開放評分
         </label>
 
-        <div class="flex items-center justify-end gap-2 pt-1">
-          <span v-if="error" class="text-xs text-red-700 dark:text-red-400 mr-auto">{{ error }}</span>
+        <p v-if="error" class="text-xs text-red-700 dark:text-red-400">{{ error }}</p>
+
+        <div class="flex items-center gap-2 pt-1">
           <button type="button" class="btn-secondary text-sm" @click="formOpen = false">取消</button>
           <button type="button" class="btn-primary text-sm" :disabled="busy" @click="submitForm">儲存</button>
         </div>
@@ -788,8 +790,9 @@ async function removeReview() {
 
         <p class="text-xs text-slate-600 dark:text-slate-400">分數全部清空後儲存＝刪除這筆評分。</p>
 
-        <div class="flex items-center justify-end gap-2 pt-1">
-          <span v-if="error" class="text-xs text-red-700 dark:text-red-400 mr-auto">{{ error }}</span>
+        <p v-if="error" class="text-xs text-red-700 dark:text-red-400">{{ error }}</p>
+
+        <div class="flex items-center gap-2 pt-1">
           <button type="button" class="btn-secondary text-sm" @click="clearCell">清空</button>
           <button type="button" class="btn-secondary text-sm" @click="edit = null">取消</button>
           <button type="button" class="btn-primary text-sm" :disabled="busy" @click="saveCell">

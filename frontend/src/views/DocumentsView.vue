@@ -811,7 +811,7 @@ function resetF2() {
               </table>
 
               <!-- footer / submit -->
-              <div class="flex items-center justify-between px-5 py-4
+              <div class="space-y-3 px-5 py-4
                           border-t border-slate-200 dark:border-[#2a3347]">
                 <p v-if="f1Error" class="text-sm text-red-700 dark:text-red-400">{{ f1Error }}</p>
                 <span v-else class="text-xs text-slate-600 dark:text-slate-400">
@@ -877,7 +877,7 @@ function resetF2() {
           </div>
 
           <!-- STEP: done -->
-          <div v-else class="max-w-xl">
+          <div v-else>
             <div class="card p-10 text-center space-y-4">
               <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/20
                           flex items-center justify-center mx-auto">
@@ -1116,7 +1116,7 @@ function resetF2() {
               </table>
 
               <!-- footer / submit -->
-              <div class="flex items-center justify-between px-5 py-4
+              <div class="space-y-3 px-5 py-4
                           border-t border-slate-200 dark:border-[#2a3347]">
                 <p v-if="f2Error" class="text-sm text-red-700 dark:text-red-400">{{ f2Error }}</p>
                 <span v-else class="text-xs text-slate-600 dark:text-slate-400">
@@ -1185,7 +1185,7 @@ function resetF2() {
           </div>
 
           <!-- STEP: done -->
-          <div v-else class="max-w-xl">
+          <div v-else>
             <div class="card p-10 text-center space-y-4">
               <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/20
                           flex items-center justify-center mx-auto">

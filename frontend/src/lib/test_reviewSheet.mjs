@@ -36,7 +36,7 @@ const aoaOf = (wb, name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 
 
 function roundTrip(ctx, withScores) {
   const wb = buildWorkbook(ctx, { withScores })
-  return { wb, parsed: parseWorkbook(ctx, write(wb)) }
+  return { wb, ...parseWorkbook(ctx, write(wb)) }
 }
 
 // 用自訂 aoa 湊一本活頁簿，測壞資料
@@ -58,7 +58,7 @@ const scores = {
 }
 {
   const ctx = ctxFor(criteria2, scores)
-  const { wb, parsed } = roundTrip(ctx, true)
+  const { wb, rows: parsed } = roundTrip(ctx, true)
 
   const got = Object.fromEntries(parsed.map((p) => [`${p.group_id}|${p.reviewer}`, p.scores]))
   assert.deepEqual(got, Object.fromEntries(
@@ -87,7 +87,7 @@ const scores = {
 // --- 2) 單一總分：欄位名稱與評分項目同名也不會被當成計算欄 ---
 {
   const ctx = ctxFor(criteria1, { 'g1|t2': { scores: [88] }, 'g2|外:王大明': { scores: [61] } })
-  const { wb, parsed } = roundTrip(ctx, true)
+  const { wb, rows: parsed } = roundTrip(ctx, true)
   assert.deepEqual(aoaOf(wb, '林老師')[1], ['組別', '題目', '指導老師', '總分 (100%)', '評語'])
   assert.deepEqual(
     parsed.sort((a, b) => a.group_id.localeCompare(b.group_id)),
@@ -101,7 +101,7 @@ const scores = {
 // --- 3) 空白範本讀回來是零筆（不會誤生 0 分），也沒有總覽 ---
 {
   const ctx = ctxFor(criteria2, {})
-  const { wb, parsed } = roundTrip(ctx, false)
+  const { wb, rows: parsed } = roundTrip(ctx, false)
   assert.deepEqual(wb.SheetNames, ['陳老師', '林老師', '王大明（外審）'], '範本沒有總覽')
   assert.equal(parsed.length, 0, '空白範本不該產生任何評分')
 }
@@ -140,7 +140,7 @@ const scores = {
   )
   // 老師自己加回自己指導的組 → 整列跳過，不會被驗證也不會匯入
   assert.deepEqual(
-    parseWorkbook(ctx, wbOf({ 陳老師: [['評審：陳老師'], head, [1, '3D動畫', '陳老師', 999, 50]] })),
+    parseWorkbook(ctx, wbOf({ 陳老師: [['評審：陳老師'], head, [1, '3D動畫', '陳老師', 999, 50]] })).rows,
     []
   )
   // 總覽被略過，但整本至少要有一張評審表
@@ -148,6 +148,33 @@ const scores = {
     () => parseWorkbook(ctx, wbOf({ 總覽: [['組別', '題目', '指導老師', '系上平均']] })),
     /格式不符/
   )
+}
+
+// --- 5) 老師填的是各項配分（40% 填 32 = 80 分）→ 整張表換算回百分制 ---
+{
+  const criteria3 = [
+    { name: '創意', weight: 40 }, { name: '完成度', weight: 40 }, { name: '簡報', weight: 30 },
+  ]
+  const ctx = ctxFor(criteria3, {})
+  const head3 = ['組別', '題目', '指導老師', '創意 (40%)', '完成度 (40%)', '簡報 (30%)', '總分', '評語']
+  const { rows, scaled } = parseWorkbook(ctx, wbOf({
+    林老師: [['評審：林老師'], head3, [1, '', '', 32, 24, 18], [3, '', '', 40, 30, 25]],
+  }))
+  assert.deepEqual(scaled, ['林老師'])
+  assert.deepEqual(rows.map((r) => r.scores), [[80, 60, 60], [100, 75, 83.33]])
+
+  // 同一本裡另一位是百分制（有一格超過權重）→ 各表各自判定，不互相影響
+  const both = parseWorkbook(ctx, wbOf({
+    林老師: [['評審：林老師'], head3, [1, '', '', 32, 24, 18]],
+    王大明: [['評審：王大明'], head3, [1, '', '', 85, 24, 18]],
+  }))
+  assert.deepEqual(both.scaled, ['林老師'])
+  assert.deepEqual(both.rows.map((r) => r.scores), [[80, 60, 60], [85, 24, 18]])
+
+  // 只要有一格超過配分（35 > 30）就不是占比分數，整張表當百分制原樣收下
+  const plain = parseWorkbook(ctx, wbOf({ 林老師: [['評審：林老師'], head3, [1, '', '', 32, 24, 35]] }))
+  assert.deepEqual(plain.scaled, [])
+  assert.deepEqual(plain.rows[0].scores, [32, 24, 35])
 }
 
 console.log('reviewSheet round-trip OK')

@@ -112,7 +112,7 @@ def main() -> None:
         for _ in range(6):
             new_students.append(make_student("114", None))
         for _ in range(3):
-            new_students.append(make_student("115", None, status="inactive"))
+            new_students.append(make_student("115", None, status="suspended"))
 
         for st in new_students:
             db.add(st)

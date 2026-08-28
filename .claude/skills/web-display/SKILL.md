@@ -19,8 +19,8 @@ description: 本專案的畫面排版規範 — 頁面骨架、間距尺標、�
 <template>
   <AppLayout>
     <div class="space-y-4">
-      <!-- 標題區 -->
-      <div class="flex items-center justify-between">
+      <!-- 標題區：動作按鈕換行放左，不要用 justify-between 推到右邊 -->
+      <div class="space-y-3">
         <div>
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">頁面標題</h2>
           <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">共 N 筆</p>
@@ -37,7 +37,10 @@ description: 本專案的畫面排版規範 — 頁面骨架、間距尺標、�
 - 外層永遠是 `<AppLayout>`；`AppLayout` 已給 `p-6` 與捲動，**頁面自己不要再加外距**。
 - 最外層固定 `space-y-4`（區塊間距），卡片內部用 `space-y-3`。
 - 標題只用 `h2 text-lg font-bold`；副標 `text-xs`。頁面內不出現 `h1`。
-- 標題右邊放主要動作按鈕，`btn-primary` 最多一顆。
+- **頁面內容滿版**：除非是刻意做的多欄版面（`flex` 並排的表單＋預覽），否則不要加 `max-w-*` 限制寬度。
+- **按鈕一律靠左**：主要動作放在標題下面自成一列，不要用 `justify-between` 把它推到畫面右緣。
+  概念不同的元素（說明文字、錯誤訊息、按鈕群）用換行分開，不要靠 `justify-between` 拉開。
+  例外只有兩個：彈窗右上的關閉 X、表格列內的操作選單。
 
 ## 2. 間距尺標（只准用這幾階）
 
@@ -120,7 +123,7 @@ description: 本專案的畫面排版規範 — 頁面骨架、間距尺標、�
 - 每個欄位：`<label class="label">標題</label>` + `<input class="input">`，欄位間 `space-y-3`。
 - 多欄並排用 `grid grid-cols-2 gap-3`（手機 `grid-cols-1 sm:grid-cols-2`）。
 - 錯誤訊息就地顯示在欄位或表單下方，`text-xs text-red-700 dark:text-red-400`；成功訊息同位置用 emerald。
-- 送出鈕在表單右下，送出中 `:disabled="busy"` 且文字改「處理中…」。**非同步動作一定要 disable。**
+- 送出鈕在表單左下（`<div class="flex">`，不要 `justify-end`），送出中 `:disabled="busy"` 且文字改「處理中…」。**非同步動作一定要 disable。**
 - 必填標記用 `<span class="text-red-700 dark:text-red-400">*</span>`。
 
 ## 7. 彈窗（沒有 modal 元件，就地寫）
@@ -159,6 +162,7 @@ description: 本專案的畫面排版規範 — 頁面骨架、間距尺標、�
 ## 11. 交付前檢查
 
 - [ ] 版面用 `AppLayout` + `space-y-4`，沒有自訂外距
+- [ ] 內容滿版（沒有多餘的 `max-w-*`），按鈕靠左（沒有多餘的 `justify-end`）
 - [ ] 間距／字級都在上面的尺標內
 - [ ] 表格有空狀態、有 `overflow-x-auto`、操作收進 `TableActionMenu`
 - [ ] 非同步按鈕會 disable 並顯示進行中文字

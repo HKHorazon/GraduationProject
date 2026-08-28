@@ -5,7 +5,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 
 <template>
   <AppLayout>
-    <div class="max-w-2xl mx-auto">
+    <div>
       <div class="rounded-xl border border-slate-200 dark:border-[#2a3347]
                   bg-white dark:bg-[#161b27] p-8">
         <div class="flex items-center gap-3 mb-6">

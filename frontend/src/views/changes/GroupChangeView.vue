@@ -228,7 +228,7 @@ async function doDisband() {
     <div v-else class="flex gap-5 h-full">
       <!-- ═══ LEFT: group list ═══ -->
       <div class="w-96 flex-shrink-0 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
+        <div class="space-y-3">
           <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">組別異動</h2>
           <button class="btn-primary flex items-center gap-1.5 !py-1.5 !px-3" @click="startCreate">
             <FolderPlus class="w-4 h-4" /> 新增組別
@@ -558,7 +558,7 @@ async function doDisband() {
               </p>
             </div>
           </div>
-          <div class="flex justify-end gap-2">
+          <div class="flex gap-2">
             <button class="btn-secondary" @click="confirmDisband = false">取消</button>
             <button class="btn-danger" :disabled="disbanding" @click="doDisband">
               {{ disbanding ? '處理中…' : '確認解散' }}

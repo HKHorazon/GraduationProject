@@ -1,4 +1,9 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
+
+# active 以外都是離開：休學／退學／抵免（inactive 是舊資料）
+StudentStatus = Literal["active", "suspended", "withdrawn", "exempted", "inactive"]
 
 
 # ---------- Teacher ----------
@@ -22,7 +27,7 @@ class StudentBase(BaseModel):
     class_: str | None = None
     school_year: str
     group_id: str | None = None
-    status: str = "active"
+    status: StudentStatus = "active"
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -37,7 +42,7 @@ class StudentUpdate(BaseModel):
     class_: str | None = None
     school_year: str | None = None
     group_id: str | None = None
-    status: str | None = None
+    status: StudentStatus | None = None
 
 
 class StudentOut(StudentBase):

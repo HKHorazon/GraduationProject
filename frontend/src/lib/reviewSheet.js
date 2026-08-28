@@ -14,7 +14,7 @@ export const LEAD_COLS = ['組別', '題目', '指導老師']   // 每張表最�
 export const AVG_COLS = ['系上平均', '外審平均', '加權總分']
 const TITLE = '評審：'
 const SUMMARY = '總覽'
-const HINT = '分數 0–100，未評分請整列留白'
+const HINT = '分數 0–100，未評分請整列留白（也可以直接填該項配分，例如 40% 的項目填 32＝80 分）'
 
 const HEAD = {
   font: { bold: true },
@@ -151,7 +151,7 @@ function parseReviewerSheet(ctx, aoa, sheet, reviewer) {
     throw new Error(`工作表「${sheet}」缺少部分評分項目欄位`)
   }
 
-  const out = []
+  const rows = []
   for (const row of aoa.slice(2)) {
     const raw = String(row[0] ?? '').trim()
     if (raw === '') continue
@@ -160,37 +160,61 @@ function parseReviewerSheet(ctx, aoa, sheet, reviewer) {
     if (g.own.includes(reviewer)) continue          // 自己指導的組，填了也跳過
     const cells = cols.map((c) => row[c])
     if (cells.every(EMPTY)) continue
-    const scores = cells.map((v) => {
-      const num = Number(v)
-      if (EMPTY(v) || Number.isNaN(num) || num < 0 || num > 100) {
-        throw new Error(`工作表「${sheet}」第${g.number}組的分數不合法：${v ?? '(空白)'}`)
-      }
-      return num
-    })
     const comment = commentCol === -1 ? '' : String(row[commentCol] ?? '').trim()
-    out.push({ group_id: g.id, reviewer, scores, comment: comment || null })
+    rows.push({ g, cells, comment })
   }
-  return out
+
+  // 有些老師不打百分制，直接填該項目的配分（40% 的項目填 32＝80 分）。
+  // 一張表就是一位評審，整張表每一格都沒超過該項目的權重時就當作占比分數換算回來。
+  // ponytail: 只做整張表的判定；32/100 這種真的很低的百分制分數會被誤判，
+  //           所以匯入後會回報哪幾位評審被換算，讓使用者自己核對。
+  const weights = criteria.map((c) => c.weight)
+  const scaled = weights.some((w) => w < 100) && rows.length > 0 &&
+    rows.every(({ cells }) => cells.every((v, i) => {
+      const num = Number(v)
+      return !EMPTY(v) && !Number.isNaN(num) && num >= 0 && num <= weights[i]
+    }))
+
+  return {
+    scaled,
+    rows: rows.map(({ g, cells, comment }) => ({
+      group_id: g.id,
+      reviewer,
+      scores: cells.map((v, i) => {
+        const num = Number(v)
+        const max = scaled ? weights[i] : 100
+        if (EMPTY(v) || Number.isNaN(num) || num < 0 || num > max) {
+          throw new Error(`工作表「${sheet}」第${g.number}組的分數不合法：${v ?? '(空白)'}`)
+        }
+        return scaled ? Math.round((num / weights[i]) * 10000) / 100 : num
+      }),
+      comment: comment || null,
+    })),
+  }
 }
 
 /**
  * 反向讀回整本活頁簿。ctx 另需 groupByNumber(number) 與 teacherIdByName(name)。
  * A1 沒有「評審：」的工作表（例如「總覽」）一律略過。
- * 回傳 [{ group_id, reviewer, scores, comment }]。
+ * 回傳 { rows: [{ group_id, reviewer, scores, comment }], scaled: ['工作表名'] }，
+ * scaled = 填的是占比分數、已換算成百分制的工作表。
  */
 export function parseWorkbook(ctx, buffer) {
   const wb = XLSX.read(buffer, { type: 'array' })
-  const out = []
+  const rows = []
+  const scaled = []
   let found = 0
   for (const sheet of wb.SheetNames) {
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, blankrows: false })
     const a1 = String(aoa[0]?.[0] ?? '').trim()
     if (!a1.startsWith(TITLE)) continue
     found++
-    out.push(...parseReviewerSheet(ctx, aoa, sheet, reviewerOf(ctx, a1.slice(TITLE.length))))
+    const r = parseReviewerSheet(ctx, aoa, sheet, reviewerOf(ctx, a1.slice(TITLE.length)))
+    rows.push(...r.rows)
+    if (r.scaled && r.rows.length) scaled.push(sheet)
   }
   if (!found) {
     throw new Error('格式不符：每位評審要各自一張工作表，A1 是「評審：姓名」。請用「下載範本」重新填寫')
   }
-  return out
+  return { rows, scaled }
 }

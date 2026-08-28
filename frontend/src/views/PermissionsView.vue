@@ -54,7 +54,7 @@ const ROLES = [
 
     <template v-else>
       <!-- Header -->
-      <div class="flex items-center justify-between mb-5">
+      <div class="space-y-3 mb-5">
         <div>
           <h2 class="font-bold text-slate-800 dark:text-slate-100">權限設定</h2>
           <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">設定各角色可存取的頁面</p>

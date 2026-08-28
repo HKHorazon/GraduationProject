@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { ChevronUp, ChevronDown, ChevronsUpDown, Pencil } from 'lucide-vue-next'
+import { ChevronUp, ChevronDown, ChevronsUpDown, Pencil, Download } from 'lucide-vue-next'
+import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
+import { groupRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
@@ -82,6 +84,11 @@ const cols = [
   { key: 'members',     label: '組員' },
 ]
 
+function exportExcel() {
+  const rows = groupRows(filteredGroups.value, { students: data.students, teachers: data.teachers })
+  XLSX.writeFile(buildWorkbook({ 組別: rows }), exportFileName('組別列表'))
+}
+
 // Edit group name modal
 const editingGroup = ref(null)
 const editName = ref('')
@@ -129,11 +136,16 @@ function groupActions(g) {
     <div class="space-y-4">
       <!-- Header + Filters -->
       <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between">
+        <div class="space-y-3">
           <div>
             <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">組別列表</h2>
             <p class="text-xs text-slate-600 mt-0.5 dark:text-slate-400">共 {{ filteredGroups.length }} 個組別</p>
           </div>
+          <button class="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                  :disabled="filteredGroups.length === 0" @click="exportExcel">
+            <Download class="w-3.5 h-3.5" />
+            匯出 Excel
+          </button>
         </div>
         <div class="flex gap-2 flex-wrap">
           <select v-model="filterYear" class="input w-36 text-xs">
@@ -256,7 +268,7 @@ function groupActions(g) {
                 />
               </div>
               <p v-if="saveError" class="text-xs text-red-700 dark:text-red-400">{{ saveError }}</p>
-              <div class="flex gap-2 justify-end">
+              <div class="flex gap-2">
                 <button
                   type="button"
                   @click="editingGroup = null"
