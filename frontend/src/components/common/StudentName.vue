@@ -5,6 +5,7 @@
 // - 其他（viewer）：純文字
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { maskName } from '@/lib/privacy'
 
 const props = defineProps({
@@ -17,6 +18,7 @@ const props = defineProps({
 })
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 
 const rawName = computed(() => props.student?.name ?? props.name)
 const targetId = computed(() => props.student?.id ?? props.id)
@@ -26,7 +28,7 @@ const display = computed(() => {
   return props.label || rawName.value
 })
 
-const clickable = computed(() => auth.isEditor && !!targetId.value)
+const clickable = computed(() => perms.canEdit('students', auth.role) && !!targetId.value)
 </script>
 
 <template>

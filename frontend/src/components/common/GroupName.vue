@@ -3,6 +3,7 @@
 // 編輯者點擊後進入 組別異動 並自動選取該組；其他人看到純文字。
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 
 const props = defineProps({
   // 完整組別物件（優先），或只傳 id + label
@@ -13,10 +14,11 @@ const props = defineProps({
 })
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 
 const targetId = computed(() => props.group?.id ?? props.id)
 const display = computed(() => props.label || props.group?.name || targetId.value)
-const clickable = computed(() => auth.isEditor && !!targetId.value)
+const clickable = computed(() => perms.canEdit('groups', auth.role) && !!targetId.value)
 </script>
 
 <template>

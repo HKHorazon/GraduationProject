@@ -2,13 +2,16 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { GripVertical, Save, RotateCcw } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import NoAccess from '@/components/common/NoAccess.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
 import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 
 onMounted(() => { data.loadAll() })
@@ -94,7 +97,9 @@ async function save() {
 
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <NoAccess v-if="!perms.canAccess('group-order', auth.role)" />
+
+    <div v-else class="space-y-4">
       <!-- Header + year picker -->
       <div class="flex flex-col gap-3">
         <div class="space-y-3">
@@ -106,7 +111,7 @@ async function save() {
           </div>
           <div class="flex items-center gap-2">
             <button
-              v-if="auth.isEditor"
+              v-if="perms.canEdit('group-order', auth.role)"
               type="button"
               class="btn-secondary text-xs flex items-center gap-1 disabled:opacity-40"
               :disabled="!dirty || saving"
@@ -115,7 +120,7 @@ async function save() {
               <RotateCcw class="w-3.5 h-3.5" /> 還原
             </button>
             <button
-              v-if="auth.isEditor"
+              v-if="perms.canEdit('group-order', auth.role)"
               type="button"
               class="btn-primary text-xs flex items-center gap-1 disabled:opacity-40"
               :disabled="!dirty || saving"
@@ -134,7 +139,7 @@ async function save() {
         </div>
       </div>
 
-      <p v-if="!auth.isEditor" class="text-xs text-slate-600 dark:text-slate-400">
+      <p v-if="!perms.canEdit('group-order', auth.role)" class="text-xs text-slate-600 dark:text-slate-400">
         僅檢視模式 — 需編輯權限才能調整順序。
       </p>
 
@@ -143,10 +148,10 @@ async function save() {
         <div
           v-for="(g, i) in localOrder"
           :key="g.id"
-          :draggable="auth.isEditor"
+          :draggable="perms.canEdit('group-order', auth.role)"
           class="card flex items-stretch gap-3 p-3 transition-shadow duration-100 select-none"
           :class="[
-            auth.isEditor ? 'cursor-grab active:cursor-grabbing' : '',
+            perms.canEdit('group-order', auth.role) ? 'cursor-grab active:cursor-grabbing' : '',
             dragIndex === i
               ? 'shadow-lg ring-2 ring-blue-400 dark:ring-cyan-400 relative z-10'
               : '',
@@ -160,7 +165,7 @@ async function save() {
           <!-- handle + position -->
           <div class="flex items-center gap-2 flex-shrink-0 w-24">
             <GripVertical
-              v-if="auth.isEditor"
+              v-if="perms.canEdit('group-order', auth.role)"
               class="w-4 h-4 text-slate-600 dark:text-slate-400"
             />
             <span class="id-mono text-sm font-semibold text-slate-700 dark:text-slate-200">

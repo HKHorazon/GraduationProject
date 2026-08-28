@@ -20,16 +20,17 @@ export const useDataStore = defineStore('data', () => {
     loading.value = true
     error.value = ''
     try {
-      const [s, g, t, r] = await Promise.all([
+      const [s, g, t] = await Promise.all([
         api.get('/students'),
         api.get('/groups'),
         api.get('/teachers'),
-        api.get('/reviews'),
       ])
       students.value = s
       groups.value = g
       teachers.value = t
-      reviews.value = r
+      // 審查場次照「審查評分」頁的權限擋（含分數與評語），沒權限的人拿不到。
+      // 這裡不能讓它把上面三包一起拖垮 —— 未登入也要看得到學生／組別列表。
+      reviews.value = await api.get('/reviews').catch(() => [])
       loaded.value = true
     } catch (e) {
       error.value = e.message ?? '載入資料失敗'

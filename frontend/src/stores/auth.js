@@ -1,18 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api, getToken, setToken } from '@/lib/api'
+import { usePermissionsStore, GUEST_GROUP } from '@/stores/permissions'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
-  const role = ref('viewer')
+  // role 存的是權限分組 key（permission_groups.key）；未登入就是 guest 分組。
+  const role = ref(GUEST_GROUP)
 
   const isLoggedIn = computed(() => user.value !== null)
-  const isEditor = computed(() => role.value === 'editor' || role.value === 'super_admin')
-  const isSuperAdmin = computed(() => role.value === 'super_admin')
+  // 管理員＝所屬分組被標記 is_admin（帳號管理／權限設定）。頁面權限一律問
+  // perms.canAccess / perms.canEdit，不要再用角色字串判斷。
+  const isAdmin = computed(() => usePermissionsStore().isAdminGroup(role.value))
 
   function applyAccount(account) {
     user.value = account
-    role.value = account?.role ?? 'viewer'
+    role.value = account?.role ?? GUEST_GROUP
   }
 
   async function init() {
@@ -23,7 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
       // token expired or invalid — drop it and stay logged out
       setToken(null)
       user.value = null
-      role.value = 'viewer'
+      role.value = GUEST_GROUP
     }
   }
 
@@ -41,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function signOut() {
     setToken(null)
     user.value = null
-    role.value = 'viewer'
+    role.value = GUEST_GROUP
     // 登出後快取可能仍是真實姓名——重新載入取得遮蔽版。
     const { useDataStore } = await import('@/stores/data')
     await useDataStore().loadAll()
@@ -54,5 +57,5 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  return { user, role, isLoggedIn, isEditor, isSuperAdmin, init, signIn, signOut, changePassword }
+  return { user, role, isLoggedIn, isAdmin, init, signIn, signOut, changePassword }
 })

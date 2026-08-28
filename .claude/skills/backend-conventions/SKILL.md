@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import require_editor
+from ..pageperm import require_edit
 from ..models import Account, Thing
 from ..schemas import ThingCreate, ThingOut, ThingUpdate
 
@@ -27,7 +27,7 @@ router = APIRouter()  # registered in main.py: app.include_router(x.router, pref
 
 
 @router.get("", response_model=list[ThingOut])
-def list_things(db: Session = Depends(get_db)):          # reads: NO auth
+def list_things(db: Session = Depends(get_db)):          # reads: pick a guard, see rule 1
     return db.scalars(select(Thing)).all()
 
 
@@ -35,7 +35,7 @@ def list_things(db: Session = Depends(get_db)):          # reads: NO auth
 def create_thing(
     body: ThingCreate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),             # writes: ALWAYS require_editor
+    actor: Account = Depends(require_edit("things", "data")),   # writes: ALWAYS a page guard
 ):
     if db.get(Thing, body.id):
         raise HTTPException(status.HTTP_409_CONFLICT, "Thing id already exists")
@@ -53,7 +53,7 @@ def update_thing(
     thing_id: str,
     body: ThingUpdate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("things", "data")),
 ):
     thing = db.get(Thing, thing_id)
     if not thing:
@@ -74,7 +74,12 @@ DELETE returns `status.HTTP_204_NO_CONTENT` and still writes `audit.dblog` befor
 
 ## Hard rules
 
-1. **Auth**: reads open, writes `require_editor`, account management `require_super_admin`. Never a write endpoint without an `actor`.
+1. **Auth**: the `/permissions` matrix is the only authority — `permission_groups` (freely editable; `Account.role` holds the group key) x `page_permissions` (`none` < `view` < `edit`). Guards live in `app/pageperm.py`:
+   - writes → `require_edit(*pages)`, where `pages` is every screen that legitimately drives the endpoint (the check is an OR). Always needs a login.
+   - page-specific reads (scores, history) → `require_view(*pages)`; no token counts as the `guest` group.
+   - `students` / `groups` / `teachers` reads stay open — every screen pulls them via `data.loadAll()`, so they hide the personal part instead: `pageperm.hides_names(db, account, page)` (未登入 or level `none`) → return `mask_name`d copies of the **Pydantic** objects, never the ORM ones.
+   - account + permission management → `require_admin` (any group flagged `is_admin`).
+   Never a write endpoint without an `actor`. Never compare `account.role` to a string.
 2. **Audit, two layers, both before commit**:
    - `audit.dblog()` — every write, no exceptions (including account changes and hard deletes).
    - `audit.event()` — only event keys whitelisted in `docs/異動紀錄種類.md`:

@@ -47,10 +47,12 @@ backend/              # FastAPI app
     config.py         # env-driven settings (pydantic-settings)
     db.py             # SQLAlchemy engine, session, Base
     security.py       # bcrypt hashing + JWT
-    deps.py           # auth guards: get_current_account / require_editor / require_super_admin
+    deps.py           # token -> Account (get_current_account / _optional)
+    pageperm.py       # the permission matrix guards: require_edit / require_view / require_admin
+    privacy.py        # mask_name (未登入／無權檢視時的姓名遮蔽)
     models.py         # SQLAlchemy ORM models
     schemas.py        # Pydantic request/response schemas
-    routers/          # auth, students, groups, teachers, accounts
+    routers/          # auth, students, groups, teachers, accounts, permissions, reviews, audit
   alembic/            # DB migrations (entrypoint runs `upgrade head`)
   seed.py             # base seed data
   seed_fake.py        # extra fake data for demos
@@ -127,19 +129,19 @@ Detailed templates live in project skills — read the relevant one before writi
 ### Language & Domain
 
 - **All UI-visible text is Traditional Chinese (zh-TW).** Code identifiers and most comments are English; short Chinese comments are fine where surrounding code already uses them.
-- Roles: `super_admin` > `editor` > `viewer` (strings on `Account.role`). Editor check = `deps.require_editor` (accepts super_admin too); account management = `require_super_admin`.
+- **Permissions are data, not code.** `permission_groups` holds freely creatable groups (`Account.role` stores the group `key`); `page_permissions` holds one `level` per (group, page) — `none` < `view` < `edit`. Two groups are builtin and undeletable: `guest` (every request with no token) and the `is_admin` group (full access + 帳號管理／權限設定). Seeded groups: guest 未登入訪客 · viewer 檢視者 · editor 編輯者 · super_admin 系統管理員 — the middle two are ordinary, deletable groups. There is no hardcoded role check anywhere: guards are `pageperm.require_edit(*pages)` / `require_view(*pages)` / `require_admin`.
 - School years are ROC strings (`"113"`, `"114"`). Display always goes through `rocYear()` / `yearClass()` in `frontend/src/lib/year.js`.
 - Internal PKs are strings: students `s{n}`, groups `g{n}`, teachers `t{n}`, accounts `u{n}` (server auto-generates when omitted). `student_id` (學號, e.g. `A11001`) is the human-facing unique ID. A group's display label is `第{number}組`.
-- Page registry (sidebar label ↔ route ↔ permission key) lives in `frontend/src/stores/permissions.js` (`PAGES`): students 學生列表, groups 組別列表, remove-student 學生更動, group-change 組別異動, documents 文件輸入, documents-export 文件輸出, data 資料管理, audit-logs 異動紀錄; plus super_admin-only /accounts 帳號管理 and /permissions 權限設定.
+- Page registry (sidebar label ↔ route ↔ permission key) lives in `frontend/src/stores/permissions.js` (`PAGES`): students 學生列表, groups 組別列表, remove-student 學生更動, group-change 組別異動, group-order 組別排序, documents 文件輸入, documents-export 文件輸出, reviews 審查評分, data 資料管理, audit-logs 異動紀錄; plus admin-only /accounts 帳號管理 and /permissions 權限設定. A page marked `editOnly: true` (remove-student, group-change, documents, data) is pure action — 唯讀 there is meaningless, so its cell cycles none ↔ edit only and its view gates on `canEdit`. The same list is mirrored in `backend/app/pageperm.py` and `backend/seed.py`.
 - Seed logins (password `password`): `admin` super_admin · `chen`/`lin` editor · `wang`/`huang` viewer. Browsing works logged-out (names masked).
 
 ### Backend rules (reference files: `routers/students.py`, `routers/groups.py`)
 
-1. **Every mutating endpoint** takes `actor: Account = Depends(require_editor)` (or `require_super_admin`).
+1. **Every mutating endpoint** takes `actor: Account = Depends(pageperm.require_edit(*pages))` — `pages` is the set of screens that legitimately drive that endpoint, and the guard passes if ANY of them grants `edit` (e.g. `PATCH /students` is reachable from 學生列表, 學生更動, 組別異動 and 資料管理). Account/permission management uses `pageperm.require_admin`.
    **Read endpoints are never "no auth"** — pick one of three, and state which in the endpoint:
-   - public + masked: `account: Account | None = Depends(get_current_account_optional)`, and when `account is None` return names through `privacy.mask_name` (students, groups);
+   - open + masked: `account: Account | None = Depends(get_current_account_optional)`, and when `account is None` return names through `privacy.mask_name`. Only `students`, `groups`, `teachers` — every screen pulls them via `data.loadAll()`, so gating them on one page would break the others;
    - login required: `Depends(get_current_account)`;
-   - teacher-only: `Depends(require_editor)` — used for anything carrying scores, comments or account data (`reviews`, `accounts`, `audit`).
+   - page-gated: `Depends(pageperm.require_view(*pages))` — anything carrying scores, comments or history (`reviews`, `audit-logs`). Logged-out counts as the `guest` group, so a page opened to guests stays public.
 
    Masking is applied on the **Pydantic** object, never on the ORM instance — `StudentOut.model_validate(s).model_copy(update={"name": mask_name(s.name)})`. Mutating the ORM object writes the masked name back to the DB on flush (see the comment in `routers/students.py:62`).
 2. **Audit is two layers, both written before the single `db.commit()`** (helpers in `app/audit.py`):
@@ -160,7 +162,7 @@ Detailed templates live in project skills — read the relevant one before writi
 
 1. HTTP only through the `api` singleton (`src/lib/api.js`). Domain data only through `useDataStore`; after a mutation, update the store array in place (push / replace-by-id / filter) — never refetch everything.
 2. A new page = 5 touchpoints, all required: view in `src/views/` (`<script setup>`, content wrapped in `<AppLayout>`) → lazy route in `router/index.js` → entry in `PAGES` + `DEFAULT_PERMISSIONS` (`stores/permissions.js`) → sidebar item in `AppSidebar.vue` gated by `perms.canAccess(key, auth.role)`.
-3. Write-UI is hidden with `auth.isEditor` / `auth.isSuperAdmin` — UX only; the backend check is the real guard.
+3. Write-UI is hidden with `perms.canEdit('<page-key>', auth.role)`; whole-page access with `perms.canAccess(...)` (`<NoAccess>` in `components/common/`). `auth.isAdmin` only for 帳號管理／權限設定. **Never branch on a role string** (`role === 'editor'`) — that was the bug where granting a page did nothing. UX only; the backend check is the real guard.
 4. Student and group names render through the `StudentName` / `GroupName` components (they handle logged-out masking via `maskName` and editor click-through). Never print a raw student name directly.
 5. Icons: `lucide-vue-next` only. No new UI/component/CSS libraries.
 6. Styling: Tailwind + the shared component classes in `src/assets/main.css` (`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`). **Every screen must look correct in BOTH themes** — dark is the default (Dark Tech), light is warm parchment (`darkMode: 'class'`). Never build a screen for one theme only.
@@ -194,6 +196,7 @@ Detailed templates live in project skills — read the relevant one before writi
 
 - Frontend touched → `cd frontend && npm run build` **and** `node scripts/check-colors.mjs` must both pass.
 - Backend touched → `backend/.venv/Scripts/python.exe -m compileall -q app` must pass, then restart uvicorn (**no `--reload` on Windows** — it hangs) and smoke-test the changed endpoint.
+- Auth/permissions touched → `backend/.venv/Scripts/python.exe backend/test_pageperm.py` against a running local backend must pass (it exercises guest/viewer/editor/admin, level changes taking effect, and group CRUD).
 - `frontend/src/lib/` touched → its self-check must pass (`cd frontend && node src/lib/test_reviewSheet.mjs`); new logic there ships its own.
 - A read endpoint touched → verify it **logged out** as well as logged in (masking / 401 / 403 is the point of rule 1).
 - Full-stack verification: `/ship-local` starts backend (:8000, SQLite) + frontend (:5173).
@@ -205,7 +208,7 @@ Detailed templates live in project skills — read the relevant one before writi
 
 - `docs/異動紀錄種類.md` — audit event whitelist + audit_logs/db_logs design (authoritative).
 - `docs/文件專區設計規劃.md` — documents 專區 form → preview → execute flow.
-- `docs/schema.md`, `docs/er-model.md` — DB schema reference.
+- `docs/er-model.md` — DB schema reference (mermaid ER, 由 models.py 整理).
 - `DEPLOY.md` — Railway/VPS deployment gotchas.
 
 ## Deployment (Docker on a VPS / self-hosted server)

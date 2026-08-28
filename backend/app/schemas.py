@@ -199,8 +199,32 @@ class ReviewScoreOut(ReviewScoreIn):
 
 
 # ---------- Page permissions ----------
-# The API payload shape is dict[str, PagePermission] keyed by page_key.
-class PagePermission(BaseModel):
-    viewer: bool
-    editor: bool
+# 權限分組（viewer/editor 這種）不再寫死，改成資料表；Account.role 存 group key。
+PermLevel = Literal["none", "view", "edit"]
+
+
+class PermissionGroupOut(BaseModel):
+    key: str
+    label: str
+    is_admin: bool
+    builtin: bool
+    sort: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PermissionGroupCreate(BaseModel):
+    label: str
+    key: str | None = None      # auto-slugged from label when omitted
+    is_admin: bool = False
+
+
+class PermissionGroupUpdate(BaseModel):
+    label: str | None = None
+    is_admin: bool | None = None
+    sort: int | None = None
+
+
+class PermissionMatrix(BaseModel):
+    groups: list[PermissionGroupOut]
+    perms: dict[str, dict[str, PermLevel]]      # group_key -> page_key -> level
     model_config = ConfigDict(from_attributes=True)

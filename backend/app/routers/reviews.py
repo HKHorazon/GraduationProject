@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import require_editor, require_super_admin
+from ..pageperm import require_admin, require_edit, require_view
 from ..models import Account, Group, Review, ReviewScore, Teacher
 from ..schemas import (
     ReviewCreate,
@@ -155,7 +155,11 @@ def _upsert(db: Session, review: Review, body: ReviewScoreIn) -> tuple[ReviewSco
 
 # ---------- 審查場次 ----------
 @router.get("", response_model=list[ReviewOut])
-def list_reviews(school_year: str | None = None, db: Session = Depends(get_db)):
+def list_reviews(
+    school_year: str | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(require_view("reviews")),
+):
     stmt = select(Review)
     if school_year:
         stmt = stmt.where(Review.school_year == school_year)
@@ -166,7 +170,7 @@ def list_reviews(school_year: str | None = None, db: Session = Depends(get_db)):
 def create_review(
     body: ReviewCreate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_super_admin),
+    actor: Account = Depends(require_admin),
 ):
     rid = body.id
     if not rid:
@@ -197,7 +201,7 @@ def update_review(
     review_id: str,
     body: ReviewUpdate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_super_admin),
+    actor: Account = Depends(require_admin),
 ):
     review = _get_review(db, review_id)
     data = body.model_dump(exclude_unset=True)
@@ -240,7 +244,7 @@ def update_review(
 def delete_review(
     review_id: str,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_super_admin),
+    actor: Account = Depends(require_admin),
 ):
     review = _get_review(db, review_id)
     audit.dblog(db, actor, "delete", "reviews", review.id,
@@ -252,7 +256,11 @@ def delete_review(
 
 # ---------- 評分 ----------
 @router.get("/{review_id}/scores", response_model=list[ReviewScoreOut])
-def list_scores(review_id: str, db: Session = Depends(get_db)):
+def list_scores(
+    review_id: str,
+    db: Session = Depends(get_db),
+    _=Depends(require_view("reviews")),
+):
     review = _get_review(db, review_id)
     criteria = json.loads(review.criteria)
     return [_score_out(row, criteria) for row in review.scores]
@@ -263,7 +271,7 @@ def put_score(
     review_id: str,
     body: ReviewScoreIn,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("reviews")),
 ):
     review = _get_review(db, review_id)
     _check(db, actor, review, body)
@@ -280,7 +288,7 @@ def bulk_scores(
     review_id: str,
     body: list[ReviewScoreIn],
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_super_admin),
+    actor: Account = Depends(require_admin),
 ):
     """Excel 匯入：整批 upsert。任何一列不合法就整批退回（不會半匯入）。"""
     review = _get_review(db, review_id)
@@ -302,7 +310,7 @@ def delete_score(
     review_id: str,
     score_id: int,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("reviews")),
 ):
     row = db.get(ReviewScore, score_id)
     if not row or row.review_id != review_id:

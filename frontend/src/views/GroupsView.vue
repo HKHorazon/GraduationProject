@@ -3,8 +3,10 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { ChevronUp, ChevronDown, ChevronsUpDown, Pencil, Download } from 'lucide-vue-next'
 import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import NoAccess from '@/components/common/NoAccess.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
 import { groupRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
@@ -12,6 +14,7 @@ import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 
 onMounted(() => { data.loadAll() })
@@ -75,13 +78,14 @@ const filteredGroups = computed(() => {
   })
 })
 
+// w = 固定欄寬（table-fixed），組員欄不給寬度、吃掉剩餘空間。
 const cols = [
-  { key: 'school_year', label: '學年度' },
-  { key: 'number',      label: '組號' },
-  { key: 'name',        label: '專題名稱' },
-  { key: 'category',    label: '類別' },
-  { key: 'teacher',     label: '指導老師' },
-  { key: 'members',     label: '組員' },
+  { key: 'school_year', label: '學年度',   w: 'w-24' },
+  { key: 'number',      label: '組號',     w: 'w-24' },
+  { key: 'name',        label: '專題名稱', w: 'w-56' },
+  { key: 'category',    label: '類別',     w: 'w-24' },
+  { key: 'teacher',     label: '指導老師', w: 'w-32' },
+  { key: 'members',     label: '組員',     w: '' },
 ]
 
 function exportExcel() {
@@ -133,7 +137,9 @@ function groupActions(g) {
 
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <NoAccess v-if="!perms.canAccess('groups', auth.role)" />
+
+    <div v-else class="space-y-4">
       <!-- Header + Filters -->
       <div class="flex flex-col gap-3">
         <div class="space-y-3">
@@ -162,12 +168,13 @@ function groupActions(g) {
       <!-- Table -->
       <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full min-w-[56rem] table-fixed text-sm">
             <thead class="border-b border-slate-100 dark:border-[#2a3347]">
               <tr>
                 <th
                   v-for="col in cols"
                   :key="col.key"
+                  :class="col.w"
                   class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider
                          text-slate-600 dark:text-slate-400
                          hover:text-slate-700 dark:hover:text-slate-200
@@ -181,7 +188,7 @@ function groupActions(g) {
                     <ChevronsUpDown v-else class="w-3 h-3 opacity-30" />
                   </div>
                 </th>
-                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
+                <th v-if="perms.canEdit('groups', auth.role)" class="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
                   管理
                 </th>
               </tr>
@@ -216,12 +223,12 @@ function groupActions(g) {
                     <span v-if="members(g.id).length === 0" class="text-slate-600 dark:text-slate-400 text-xs">—</span>
                   </div>
                 </td>
-                <td v-if="auth.isEditor" class="px-4 py-2.5">
+                <td v-if="perms.canEdit('groups', auth.role)" class="px-4 py-2.5">
                   <TableActionMenu :actions="groupActions(g)" />
                 </td>
               </tr>
               <tr v-if="filteredGroups.length === 0">
-                <td :colspan="auth.isEditor ? 7 : 6" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
+                <td :colspan="perms.canEdit('groups', auth.role) ? 7 : 6" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                   找不到符合條件的組別
                 </td>
               </tr>

@@ -3,15 +3,18 @@ import { ref, computed, onMounted } from 'vue'
 import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
+import NoAccess from '@/components/common/NoAccess.vue'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
 import { studentRows, groupRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import {
-  UserPlus, Upload, GraduationCap, ShieldOff, Check, FileSpreadsheet, X,
+  UserPlus, Upload, GraduationCap, Check, FileSpreadsheet, X,
   LayoutDashboard, FolderPlus, Users, LayoutList, Download, ArrowUpNarrowWide,
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 
 onMounted(() => { data.loadAll() })
@@ -30,7 +33,7 @@ const TABS = computed(() => [
   { key: 'group', label: '新增組別', icon: FolderPlus },
   { key: 'teacher', label: '新增老師', icon: GraduationCap },
   // 全體升級會動到所有學生，只開給 super_admin
-  ...(auth.isSuperAdmin ? [{ key: 'promote', label: '全體升級', icon: ArrowUpNarrowWide }] : []),
+  ...(auth.isAdmin ? [{ key: 'promote', label: '全體升級', icon: ArrowUpNarrowWide }] : []),
 ])
 const tab = ref('overview')
 
@@ -320,13 +323,8 @@ function downloadTemplate() {
 
 <template>
   <AppLayout>
-    <div v-if="!auth.isEditor" class="flex flex-col items-center justify-center h-64 gap-3 text-center">
-      <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
-      </div>
-      <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
-    </div>
+    <NoAccess v-if="!perms.canEdit('data', auth.role)"
+                hint="此頁面只有操作功能，需要「可編輯」權限，請洽系統管理員" />
 
     <div v-else class="w-full space-y-5">
       <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">資料管理</h2>
@@ -594,7 +592,7 @@ function downloadTemplate() {
       </div>
 
       <!-- 全體升級（super_admin） -->
-      <div v-if="auth.isSuperAdmin" v-show="tab === 'promote'" class="card p-6 space-y-4">
+      <div v-if="auth.isAdmin" v-show="tab === 'promote'" class="card p-6 space-y-4">
         <div>
           <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">全體升級一個年級</h3>
           <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">

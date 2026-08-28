@@ -4,16 +4,19 @@ import { useRouter } from 'vue-router'
 import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus, UserCog, Download } from 'lucide-vue-next'
 import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import NoAccess from '@/components/common/NoAccess.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { useDataStore } from '@/stores/data'
-import { rocYear, splitClass } from '@/lib/year'
+import { rocYear, yearClass } from '@/lib/year'
 import { statusLabel } from '@/lib/studentStatus'
 import { studentRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import StudentName from '@/components/common/StudentName.vue'
 import GroupName from '@/components/common/GroupName.vue'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const router = useRouter()
 const data = useDataStore()
 
@@ -94,7 +97,6 @@ const filtered = computed(() => {
     let av, bv
     switch (sortCol.value) {
       case 'school_year': av = a.school_year; bv = b.school_year; break
-      case 'class_letter': av = splitClass(a.class_).letter; bv = splitClass(b.class_).letter; break
       case 'student_id':  av = a.student_id;  bv = b.student_id;  break
       case 'name':        av = a.name;         bv = b.name;         break
       case 'group':       av = getGroup(a.group_id)?.number ?? 999; bv = getGroup(b.group_id)?.number ?? 999; break
@@ -117,15 +119,16 @@ const filtered = computed(() => {
   return result
 })
 
+// w = 固定欄寬（table-fixed）。沒給寬度的欄吃掉剩餘空間，
+// 這樣切換篩選時欄位不會跟著內容重算而跳動。
 const cols = [
-  { key: 'school_year', label: '學年年級' },
-  { key: 'class_letter', label: '班別' },
-  { key: 'student_id',  label: '學號' },
-  { key: 'name',        label: '姓名' },
-  { key: 'group',       label: '組別' },
-  { key: 'teacher',     label: '老師' },
-  { key: 'category',    label: '專題類別' },
-  { key: 'project',     label: '專題名稱' },
+  { key: 'school_year', label: '學年班級', w: 'w-28' },
+  { key: 'student_id',  label: '學號',     w: 'w-28' },
+  { key: 'name',        label: '姓名',     w: 'w-32' },
+  { key: 'group',       label: '組別',     w: 'w-40' },
+  { key: 'teacher',     label: '老師',     w: 'w-32' },
+  { key: 'category',    label: '專題類別', w: 'w-28' },
+  { key: 'project',     label: '專題名稱', w: '' },
 ]
 
 function exportExcel() {
@@ -179,7 +182,9 @@ async function saveAdvisor() {
 
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <NoAccess v-if="!perms.canAccess('students', auth.role)" />
+
+    <div v-else class="space-y-4">
       <!-- Header + Filters -->
       <div class="flex flex-col gap-3">
         <div class="space-y-3">
@@ -225,12 +230,13 @@ async function saveAdvisor() {
       <!-- Table -->
       <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full min-w-[60rem] table-fixed text-sm">
             <thead class="border-b border-slate-100 dark:border-[#2a3347]">
               <tr>
                 <th
                   v-for="col in cols"
                   :key="col.key"
+                  :class="col.w"
                   class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider
                          text-slate-600 dark:text-slate-400
                          hover:text-slate-700 dark:hover:text-slate-200
@@ -244,7 +250,7 @@ async function saveAdvisor() {
                     <ChevronsUpDown v-else class="w-3 h-3 opacity-30" />
                   </div>
                 </th>
-                <th v-if="auth.isEditor" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
+                <th v-if="perms.canEdit('students', auth.role)" class="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 select-none">
                   管理
                 </th>
               </tr>
@@ -255,8 +261,7 @@ async function saveAdvisor() {
                 :key="s.id"
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
-                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ rocYear(s.school_year) }}{{ splitClass(s.class_).grade }}</td>
-                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ splitClass(s.class_).letter || '—' }}</td>
+                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
                 <td class="px-4 py-3 font-medium"
                     :class="s.status !== 'active' ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
@@ -267,7 +272,7 @@ async function saveAdvisor() {
                                bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">{{ statusLabel(s.status) }}</span>
                 </td>
                 <td class="px-4 py-3">
-                  <span v-if="s.group_id" class="flex items-center gap-1">
+                  <span v-if="s.group_id" class="flex flex-wrap items-center gap-1">
                     <span
                       class="px-2 py-0.5 rounded-full text-xs font-medium
                              bg-blue-50 dark:bg-cyan-900/20
@@ -294,12 +299,12 @@ async function saveAdvisor() {
                   <GroupName v-if="s.group_id" :group="getGroup(s.group_id)" />
                   <template v-else>—</template>
                 </td>
-                <td v-if="auth.isEditor" class="px-4 py-3">
+                <td v-if="perms.canEdit('students', auth.role)" class="px-4 py-3">
                   <TableActionMenu :actions="studentActions(s)" />
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td :colspan="auth.isEditor ? 9 : 8" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
+                <td :colspan="perms.canEdit('students', auth.role) ? 8 : 7" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                   找不到符合條件的學生
                 </td>
               </tr>

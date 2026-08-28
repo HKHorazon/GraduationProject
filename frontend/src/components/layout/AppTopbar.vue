@@ -3,10 +3,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { Sun, Moon, LogIn, LogOut, X, Loader2 } from 'lucide-vue-next'
 
 const theme = useThemeStore()
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const route = useRoute()
 
 const pageTitles = {
@@ -108,10 +110,14 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                    border border-slate-200 dark:border-[#2a3347]"
           >
             <span class="w-2 h-2 rounded-full"
-              :class="auth.isEditor ? 'bg-blue-600 dark:bg-cyan-400' : 'bg-slate-400 dark:bg-slate-500'">
+              :class="auth.isAdmin ? 'bg-blue-600 dark:bg-cyan-400' : 'bg-slate-400 dark:bg-slate-500'">
             </span>
-            <span class="text-xs text-slate-600 dark:text-slate-300 font-mono max-w-[140px] truncate">
-              {{ auth.user?.username ?? auth.role.toUpperCase() }}
+            <span class="text-xs text-slate-600 dark:text-slate-300 font-mono max-w-[140px] truncate"
+                  :title="`權限分組：${perms.groupLabel(auth.role)}`">
+              {{ auth.user?.username ?? perms.groupLabel(auth.role) }}
+            </span>
+            <span class="text-[10px] text-slate-600 dark:text-slate-400 max-w-[100px] truncate">
+              {{ perms.groupLabel(auth.role) }}
             </span>
           </div>
 

@@ -5,7 +5,9 @@ Run inside the backend container:  python seed.py
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import Account, Group, PagePermission, Student, Teacher
+from app.models import (
+    Account, Group, PagePermission, PermissionGroup, Student, Teacher,
+)
 from app.security import hash_password
 
 TEACHERS = [
@@ -73,36 +75,62 @@ ACCOUNTS = [
 
 DEFAULT_PASSWORD = "password"
 
-# page_key -> (viewer, editor); mirrors DEFAULT_PERMISSIONS in
-# frontend/src/stores/permissions.js. Read-only browse pages open to viewers;
-# everything else editor-only by default.
-PAGE_PERMISSIONS = [
-    ("students",         True,  True),
-    ("groups",           True,  True),
-    ("remove-student",   False, True),
-    ("group-change",     False, True),
-    ("documents",        False, True),
-    ("documents-export", False, True),
-    ("data",             False, True),
-    ("audit-logs",       False, True),
+# 權限分組（Account.role 存 key）。guest / super_admin 是內建不可刪，
+# 其餘可在 /permissions 自由增刪改。
+# key, label, is_admin, builtin, sort
+PERMISSION_GROUPS = [
+    ("guest",       "未登入訪客", False, True,  0),
+    ("viewer",      "檢視者",     False, False, 1),
+    ("editor",      "編輯者",     False, False, 2),
+    ("super_admin", "系統管理員", True,  True,  99),
 ]
+
+# page_key -> {group_key: level}；level 為 none < view < edit。
+# 對照 frontend/src/stores/permissions.js 的 DEFAULT_PERMISSIONS。
+# is_admin 的分組固定全權，不存進表裡。
+PAGE_PERMISSIONS = {
+    "students":         {"guest": "view", "viewer": "view", "editor": "edit"},
+    "groups":           {"guest": "view", "viewer": "view", "editor": "edit"},
+    "remove-student":   {"guest": "none", "viewer": "none", "editor": "edit"},
+    "group-change":     {"guest": "none", "viewer": "none", "editor": "edit"},
+    "group-order":      {"guest": "none", "viewer": "none", "editor": "edit"},
+    "documents":        {"guest": "none", "viewer": "none", "editor": "edit"},
+    "documents-export": {"guest": "none", "viewer": "none", "editor": "edit"},
+    "reviews":          {"guest": "none", "viewer": "none", "editor": "edit"},
+    "data":             {"guest": "none", "viewer": "none", "editor": "edit"},
+    "audit-logs":       {"guest": "none", "viewer": "none", "editor": "edit"},
+}
 
 
 def seed_page_permissions(db) -> None:
-    """Insert default page permissions for any page_key not already present.
+    """Insert the builtin groups and any missing matrix cell.
 
-    Idempotent: never overwrites existing rows, so a super_admin's saved
-    changes survive re-seeding. Runs even when the rest of the DB is seeded.
+    Idempotent: never overwrites existing rows, so an admin's saved changes
+    survive re-seeding. Runs even when the rest of the DB is seeded.
+
+    分組只在表整個是空的時候才建 —— 每次開機都補的話，管理員在 /permissions
+    刪掉的「檢視者」會在下次部署自己復活。權限格子則照補（新增頁面要有預設值），
+    但只補給還存在的分組，免得撞 FK。
     """
-    existing = set(db.scalars(select(PagePermission.page_key)).all())
+    known = set(db.scalars(select(PermissionGroup.key)).all())
+    if not known:
+        for key, label, is_admin, builtin, sort in PERMISSION_GROUPS:
+            db.add(PermissionGroup(
+                key=key, label=label, is_admin=is_admin, builtin=builtin, sort=sort
+            ))
+        known = {g[0] for g in PERMISSION_GROUPS}
+        db.flush()
+
+    existing = {(r.group_key, r.page_key) for r in db.scalars(select(PagePermission)).all()}
     added = 0
-    for page_key, viewer, editor in PAGE_PERMISSIONS:
-        if page_key not in existing:
-            db.add(PagePermission(page_key=page_key, viewer=viewer, editor=editor))
-            added += 1
+    for page_key, by_group in PAGE_PERMISSIONS.items():
+        for group_key, level in by_group.items():
+            if group_key in known and (group_key, page_key) not in existing:
+                db.add(PagePermission(group_key=group_key, page_key=page_key, level=level))
+                added += 1
     if added:
-        db.commit()
         print(f"Seeded {added} default page permission(s).")
+    db.commit()
 
 
 def seed() -> None:

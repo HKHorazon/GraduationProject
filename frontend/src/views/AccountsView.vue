@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore, GUEST_GROUP, PAGES } from '@/stores/permissions'
 import { useDataStore } from '@/stores/data'
 import { api } from '@/lib/api'
 import { ShieldOff, UserPlus, Trash2, Save, X, Shield, Edit3, Eye } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 
 const list = ref([])
@@ -23,18 +25,28 @@ async function loadAccounts() {
 }
 
 onMounted(() => {
-  if (auth.isSuperAdmin) loadAccounts()
+  if (auth.isAdmin) loadAccounts()
   data.loadAll()
 })
 
-const ROLES = ['viewer', 'editor', 'super_admin']
-const ROLE_LABEL = { viewer: 'VIEWER', editor: 'EDITOR', super_admin: 'SUPER ADMIN' }
-const ROLE_COLOR = {
-  viewer:      'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300',
-  editor:      'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-cyan-400',
-  super_admin: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400',
+// 可指派的分組來自權限設定（/permissions），不再是寫死的三種。
+// 「未登入訪客」是給沒有帳號的人用的，不能指派。
+const ROLES = computed(() =>
+  perms.groups.filter(g => g.key !== GUEST_GROUP).map(g => g.key)
+)
+function roleLabel(key) { return perms.groupLabel(key) }
+function roleColor(key) {
+  if (perms.isAdminGroup(key)) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
+  // 有任何一頁可編輯就算編輯型分組
+  const canEditAny = PAGES.some(p => perms.canEdit(p.key, key))
+  return canEditAny
+    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-cyan-400'
+    : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
 }
-const ROLE_ICON = { viewer: Eye, editor: Edit3, super_admin: Shield }
+function roleIcon(key) {
+  if (perms.isAdminGroup(key)) return Shield
+  return PAGES.some(p => perms.canEdit(p.key, key)) ? Edit3 : Eye
+}
 
 function teacherName(tid) {
   return teachers.value.find(t => t.id === tid)?.name ?? '—'
@@ -109,7 +121,7 @@ async function submitAdd() {
 <template>
   <AppLayout>
     <!-- No permission -->
-    <div v-if="!auth.isSuperAdmin"
+    <div v-if="!auth.isAdmin"
          class="flex flex-col items-center justify-center h-64 gap-3 text-center">
       <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
         <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
@@ -159,9 +171,9 @@ async function submitAdd() {
                 <td class="px-4 py-3 font-mono text-slate-700 dark:text-slate-200">{{ acc.username }}</td>
                 <td class="px-4 py-3">
                   <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
-                        :class="ROLE_COLOR[acc.role]">
-                    <component :is="ROLE_ICON[acc.role]" class="w-3 h-3" />
-                    {{ ROLE_LABEL[acc.role] }}
+                        :class="roleColor(acc.role)">
+                    <component :is="roleIcon(acc.role)" class="w-3 h-3" />
+                    {{ roleLabel(acc.role) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ teacherName(acc.teacher_id) }}</td>
@@ -215,7 +227,7 @@ async function submitAdd() {
                            text-slate-700 dark:text-slate-200
                            focus:border-blue-400 dark:focus:border-cyan-400"
                   >
-                    <option v-for="r in ROLES" :key="r" :value="r">{{ ROLE_LABEL[r] }}</option>
+                    <option v-for="r in ROLES" :key="r" :value="r">{{ roleLabel(r) }}</option>
                   </select>
                 </td>
                 <td class="px-4 py-2">
@@ -369,7 +381,7 @@ async function submitAdd() {
                          text-slate-700 dark:text-slate-200
                          focus:border-blue-400 dark:focus:border-cyan-400"
                 >
-                  <option v-for="r in ROLES" :key="r" :value="r">{{ ROLE_LABEL[r] }}</option>
+                  <option v-for="r in ROLES" :key="r" :value="r">{{ roleLabel(r) }}</option>
                 </select>
               </div>
 

@@ -3,14 +3,17 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
+import NoAccess from '@/components/common/NoAccess.vue'
 import { useDataStore } from '@/stores/data'
 import {
-  FolderPlus, X, Save, Trash2, Users, GraduationCap, ShieldOff, Check, FileText, Search,
+  FolderPlus, X, Save, Trash2, Users, GraduationCap, Check, FileText, Search,
 } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
 import StudentName from '@/components/common/StudentName.vue'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 const route = useRoute()
 
@@ -221,13 +224,8 @@ async function doDisband() {
 <template>
   <AppLayout>
     <!-- no permission -->
-    <div v-if="!auth.isEditor" class="flex flex-col items-center justify-center h-64 gap-3 text-center">
-      <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#2a3347] flex items-center justify-center">
-        <ShieldOff class="w-6 h-6 text-slate-600 dark:text-slate-400" />
-      </div>
-      <p class="font-semibold text-slate-700 dark:text-slate-300">無編輯權限</p>
-      <p class="text-sm text-slate-600 dark:text-slate-400">此頁面僅限編輯者使用</p>
-    </div>
+    <NoAccess v-if="!perms.canEdit('group-change', auth.role)"
+                hint="此頁面只有操作功能，需要「可編輯」權限，請洽系統管理員" />
 
     <div v-else class="flex gap-5 h-full">
       <!-- ═══ LEFT: group list ═══ -->

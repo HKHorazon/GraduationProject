@@ -9,13 +9,16 @@ import {
   Download, Upload, FileSpreadsheet, X, ChevronUp, ChevronDown,
 } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import NoAccess from '@/components/common/NoAccess.vue'
 import GroupName from '@/components/common/GroupName.vue'
 import StudentName from '@/components/common/StudentName.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
 import { useDataStore } from '@/stores/data'
 import { rocYear } from '@/lib/year'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 const data = useDataStore()
 
 const TOTAL_ONLY = [{ name: '總分', weight: 100 }]
@@ -50,7 +53,7 @@ watch(reviewId, async (id) => {
 })
 
 const r2 = (n) => Math.round(n * 100) / 100
-const canEdit = computed(() => auth.isSuperAdmin)
+const canEdit = computed(() => perms.canEdit('reviews', auth.role))
 
 function teacherName(id) {
   return data.teachers.find((t) => t.id === id)?.name ?? id
@@ -303,7 +306,7 @@ function openEdit() {
   form.value = {
     name: review.value.name,
     school_year: review.value.school_year,
-    criteria: structuredClone(review.value.criteria),
+    criteria: JSON.parse(JSON.stringify(review.value.criteria)),  // store 來的是 reactive proxy，structuredClone 會炸
     reviewers: [...roster.value],
     internal_weight: review.value.internal_weight,
     external_weight: review.value.external_weight,
@@ -402,7 +405,9 @@ async function removeReview() {
 
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <NoAccess v-if="!perms.canAccess('reviews', auth.role)" />
+
+    <div v-else class="space-y-4">
       <!-- Header -->
       <div class="space-y-3">
         <div>
@@ -413,7 +418,7 @@ async function removeReview() {
             成績由管理者以 Excel 匯入，也可以直接在表格上輸入總分。系上老師不可評分自己指導的組別（紅色格）。
           </p>
         </div>
-        <div v-if="auth.isSuperAdmin && !formOpen" class="flex items-center gap-2">
+        <div v-if="canEdit && !formOpen" class="flex items-center gap-2">
           <button type="button" class="btn-secondary text-xs flex items-center gap-1" @click="openCreate">
             <Plus class="w-3.5 h-3.5" /> 新增審查
           </button>
@@ -594,7 +599,7 @@ async function removeReview() {
         </div>
 
         <div v-if="!review" class="card px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
-          尚未建立任何審查場次{{ auth.isSuperAdmin ? '——按右上角「新增審查」開始。' : '。' }}
+          尚未建立任何審查場次{{ canEdit ? '——按右上角「新增審查」開始。' : '。' }}
         </div>
 
         <template v-else>
@@ -720,7 +725,7 @@ async function removeReview() {
                 </tr>
                 <tr v-if="!roster.length">
                   <td colspan="7" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
-                    尚未設定評審名單，也還沒有任何評分{{ auth.isSuperAdmin ? '——按「設定」加入評審。' : '。' }}
+                    尚未設定評審名單，也還沒有任何評分{{ canEdit ? '——按「設定」加入評審。' : '。' }}
                   </td>
                 </tr>
                 <tr v-else-if="!groups.length">

@@ -186,15 +186,35 @@ class ReviewScore(Base):
     )
 
 
-class PagePermission(Base):
-    """Global per-page/per-role page VISIBILITY map (managed on /permissions).
+class PermissionGroup(Base):
+    """A named permission group. Account.role holds this group's `key`.
 
-    Moved off each browser's localStorage so a super_admin's changes apply to
-    everyone. Controls sidebar/page visibility ONLY — data writes stay guarded
-    server-side by require_editor.
+    Freely creatable/renamable/deletable on /permissions, except the two
+    builtins: GUEST_GROUP (未登入訪客 — the identity of every request without a
+    token) and the admin group (全權，含帳號管理／權限設定). Both are pinned by
+    `builtin` so the UI can never leave the system without an admin or a
+    logged-out identity.
+    """
+    __tablename__ = "permission_groups"
+
+    key = Column(String, primary_key=True)          # stored on Account.role
+    label = Column(String, nullable=False)          # zh-TW display name
+    is_admin = Column(Boolean, nullable=False, default=False)   # full access, always "edit"
+    builtin = Column(Boolean, nullable=False, default=False)    # cannot be deleted
+    sort = Column(Integer, nullable=False, default=0)
+
+
+class PagePermission(Base):
+    """One cell of the group x page access matrix (managed on /permissions).
+
+    Authoritative on BOTH ends: the sidebar hides what you cannot open, and
+    app/pageperm.py enforces the same rows on the endpoints. `level` is
+    "none" < "view" < "edit". An admin group is always "edit" and is not stored.
     """
     __tablename__ = "page_permissions"
 
+    group_key = Column(
+        String, ForeignKey("permission_groups.key", ondelete="CASCADE"), primary_key=True
+    )
     page_key = Column(String, primary_key=True)     # matches PAGES keys in the frontend
-    viewer = Column(Boolean, nullable=False)
-    editor = Column(Boolean, nullable=False)
+    level = Column(String, nullable=False)          # none | view | edit

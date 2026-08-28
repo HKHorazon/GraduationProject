@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import get_current_account_optional, require_editor, require_super_admin
+from ..deps import get_current_account_optional
+from ..pageperm import hides_names, require_admin, require_edit
 from ..models import Account, Group, Student
 from ..privacy import mask_name
 from ..schemas import PromoteResult, StudentCreate, StudentOut, StudentUpdate
@@ -92,10 +93,12 @@ def list_students(
     if school_year:
         stmt = stmt.where(Student.school_year == school_year)
     students = db.scalars(stmt).all()
-    if account is not None:
+    # 這支所有頁面都會叫（data.loadAll），不能整包擋掉；改成沒有「學生列表」
+    # 檢視權的人（含未登入）拿到的是遮蔽後的姓名。
+    if not hides_names(db, account, "students"):
         return students
-    # 未登入：伺服器端遮蔽姓名個資。不可直接改動 ORM 物件（session flush 會把
-    # 遮蔽後的姓名寫回 DB）——改在 Pydantic 物件上覆寫 name。
+    # 不可直接改動 ORM 物件（session flush 會把遮蔽後的姓名寫回 DB）
+    # ——改在 Pydantic 物件上覆寫 name。
     return [
         StudentOut.model_validate(s).model_copy(update={"name": mask_name(s.name)})
         for s in students
@@ -106,7 +109,7 @@ def list_students(
 def create_student(
     body: StudentCreate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("students", "remove-student", "group-change", "data")),
 ):
     data = body.model_dump(by_alias=False)
     if not data.get("id"):
@@ -130,7 +133,7 @@ def create_student(
 def create_students_bulk(
     body: list[StudentCreate],
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("students", "remove-student", "group-change", "data")),
 ):
     if not body:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "沒有可匯入的資料")
@@ -169,9 +172,9 @@ def create_students_bulk(
 @router.post("/promote", response_model=PromoteResult)
 def promote_students(
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_super_admin),
+    actor: Account = Depends(require_admin),
 ):
-    """全體升級一個年級（super_admin only）：四年級改為「班別(畢業)」。
+    """全體升級一個年級（僅限管理員分組）：四年級改為「班別(畢業)」。
 
     只改班級字串，school_year / status 一律不動；班級變更依慣例僅記入 db_logs。
     """
@@ -207,7 +210,7 @@ def update_student(
     student_id: str,
     body: StudentUpdate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("students", "remove-student", "group-change", "data")),
 ):
     student = db.get(Student, student_id)
     if not student:
@@ -240,7 +243,7 @@ def update_student(
 def delete_student(
     student_id: str,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("students", "remove-student", "group-change", "data")),
 ):
     student = db.get(Student, student_id)
     if not student:

@@ -15,15 +15,15 @@ Reference implementations — when unsure, copy from these, never invent:
 
 1. View in `src/views/` — `<script setup>`, template wrapped in `<AppLayout>`, `onMounted(() => data.loadAll())` if it shows domain data.
 2. Lazy route in `src/router/index.js`: `{ path, name, component: () => import('@/views/XView.vue') }`.
-3. Entry in `PAGES` **and** `DEFAULT_PERMISSIONS` in `src/stores/permissions.js` (zh-TW label; default viewer:false editor:true unless read-only browse page).
-4. Sidebar item in `AppSidebar.vue`, inside the right `SidebarGroup`, gated: `v-if="perms.canAccess('key', auth.role)"`.
+3. Entry in `PAGES` **and** `DEFAULT_PERMISSIONS` in `src/stores/permissions.js` (zh-TW label; default `{ guest: 'none', viewer: 'none', editor: 'edit' }` unless it is a read-only browse page). Mirror the key in `backend/app/pageperm.py` (`PAGE_KEYS`) and its default levels in `backend/seed.py` (`PAGE_PERMISSIONS`) in the same change — a key missing there is rejected by `PUT /permissions`, and a missing seed row means 不可存取 for everyone (no fallback). A page that is pure action gets `editOnly: true`.
+4. Sidebar item in `AppSidebar.vue`, inside the right `SidebarGroup`, gated: `v-if="perms.canAccess('key', auth.role)"`. The view itself opens with `<NoAccess v-if="!perms.canAccess('key', auth.role)" />` (or `!perms.canEdit(...)` for an `editOnly` page).
 5. Verify in BOTH themes (dark default + light parchment).
 
 ## Hard rules
 
 1. **HTTP**: only through the `api` singleton in `src/lib/api.js`. Never `fetch`/`axios` in views or other files.
 2. **Domain data**: only through `useDataStore` (students/groups/teachers). After a mutation, update the array in place — `push`, replace-by-id, or `filter` — exactly like `stores/data.js` does. Never refetch everything after one change.
-3. **Permission UX**: hide write UI with `auth.isEditor` / `auth.isSuperAdmin`; page access via permissions store. This is UX only — the backend guard is the real check.
+3. **Permission UX**: everything goes through the permissions store — `perms.canAccess('<page>', auth.role)` for whole-page access, `perms.canEdit('<page>', auth.role)` for write UI. `auth.isAdmin` only for 帳號管理／權限設定. **Never branch on a role string** — `auth.role` holds a group key that a super_admin can rename, delete or invent. This is UX only; the backend guard is the real check.
 4. **Names & privacy**: student names render via `<StudentName :student="s" />`, group names via `<GroupName ... />` (`src/components/common/`). They handle logged-out masking (張O明) and editor click-through. Never output a raw student name.
 5. **Years**: display via `rocYear()` / `yearClass()` from `src/lib/year.js` (data stores ROC strings like `"113"`).
 6. **Icons**: `lucide-vue-next` only. **No new dependencies** — no UI kits, no CSS libs, no date pickers.

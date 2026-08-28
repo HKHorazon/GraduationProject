@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import require_editor
+from ..pageperm import require_edit
 from ..models import Account, Group, Student, Teacher
 from ..schemas import GroupCreate, GroupOut, GroupReorder, GroupUpdate
 
@@ -47,6 +47,8 @@ def list_groups(
     school_year: str | None = None,
     db: Session = Depends(get_db),
 ):
+    # 公開：GroupOut 只有組號／專題名稱／類別／id，沒有任何人名可遮，
+    # 而且每個頁面都靠 data.loadAll() 拿它（見 app/pageperm.py 開頭）。
     stmt = select(Group)
     if school_year:
         stmt = stmt.where(Group.school_year == school_year)
@@ -57,7 +59,7 @@ def list_groups(
 def create_group(
     body: GroupCreate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("groups", "group-change", "data")),
 ):
     gid = body.id
     if not gid:
@@ -87,7 +89,7 @@ def create_group(
 def reorder_groups(
     body: GroupReorder,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("group-order", "groups", "data")),
 ):
     """Renumber a school year's groups to 1..N in the given order (drag-sort).
 
@@ -118,7 +120,7 @@ def update_group(
     group_id: str,
     body: GroupUpdate,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("groups", "group-change", "data")),
 ):
     group = db.get(Group, group_id)
     if not group:
@@ -174,7 +176,7 @@ def update_group(
 def delete_group(
     group_id: str,
     db: Session = Depends(get_db),
-    actor: Account = Depends(require_editor),
+    actor: Account = Depends(require_edit("groups", "group-change", "data")),
 ):
     group = db.get(Group, group_id)
     if not group:

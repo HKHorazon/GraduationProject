@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import require_editor
+from ..pageperm import require_view
 from ..models import AuditLog
 from ..schemas import AuditLogOut
 
@@ -14,7 +14,7 @@ router = APIRouter()
 def list_audit_logs(
     limit: int = 200,
     db: Session = Depends(get_db),
-    _=Depends(require_editor),
+    _=Depends(require_view("audit-logs")),
 ):
     limit = max(1, min(limit, 500))
     stmt = select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(limit)
