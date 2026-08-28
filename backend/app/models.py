@@ -70,8 +70,14 @@ class Student(Base):
     school_year = Column(String, nullable=False, index=True)
     group_id = Column(String, ForeignKey("groups.id", ondelete="SET NULL"), nullable=True)
     status = Column(String, nullable=False, default="active")
+    # 代理指導老師：還沒分組、但已有老師先帶的學生（名單上的「范立揚(代)」）。
+    # 有組的人老師從組別帶出來，這欄只在 group_id 為空時有意義。
+    advisor_id = Column(
+        String, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True
+    )
 
     group = relationship("Group", back_populates="members", foreign_keys=[group_id])
+    advisor = relationship("Teacher", foreign_keys=[advisor_id])
 
 
 class Account(Base):

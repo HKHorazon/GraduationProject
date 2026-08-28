@@ -28,6 +28,7 @@ class StudentBase(BaseModel):
     school_year: str
     group_id: str | None = None
     status: StudentStatus = "active"
+    advisor_id: str | None = None   # 代理指導老師，只在未分組時有意義
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -43,6 +44,7 @@ class StudentUpdate(BaseModel):
     school_year: str | None = None
     group_id: str | None = None
     status: StudentStatus | None = None
+    advisor_id: str | None = None
 
 
 class StudentOut(StudentBase):

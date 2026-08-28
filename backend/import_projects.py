@@ -14,6 +14,15 @@ from app.db import SessionLocal
 from app.models import Group, Student, Teacher
 
 CSV_COLS = ("班級", "學號", "姓名", "專題名稱", "組長", "指導老師", "備註")
+
+
+def _advisor(cell):
+    """「范立揚(代)」→ 范立揚。名單上未分組的學生就是用這格記代理指導老師。"""
+    c = cell.strip()
+    for mark in ("(代)", "（代）"):
+        if c.endswith(mark):
+            return c[: -len(mark)].strip()
+    return ""
 DROPPED = {"退學": "withdrawn", "休學": "suspended", "抵免": "exempted"}
 
 
@@ -48,7 +57,10 @@ def plan(db, rows, year):
     changes = []
 
     # ---- teachers（只認實際帶組的老師，"X(代)" 不建組所以不算） ----
-    want_teachers = sorted({r["指導老師"] for r in rows if r["專題名稱"] and r["指導老師"]})
+    want_teachers = sorted(
+        {r["指導老師"] for r in rows if r["專題名稱"] and r["指導老師"]}
+        | {_advisor(r["指導老師"]) for r in rows if not r["專題名稱"]} - {""}
+    )
     by_name = {t.name: t for t in db.scalars(select(Teacher))}
     new_teachers = [n for n in want_teachers if n not in by_name]
     for n in new_teachers:
@@ -81,7 +93,13 @@ def plan(db, rows, year):
             changes.append(f"新增學生：{r['學號']} {r['姓名']}（{r['班級']}）")
             continue
         for field, new in (("name", r["姓名"]), ("class_", r["班級"]),
-                           ("school_year", year), ("status", status)):
+                           ("school_year", year), ("status", status),
+                           ("advisor", _advisor(r["指導老師"]) or None)):
+            if field == "advisor":
+                old = s.advisor.name if s.advisor else None
+                if old != new:
+                    changes.append(f"修改學生 {r['學號']} {r['姓名']}：代理指導 {old} → {new}")
+                continue
             old = getattr(s, field)
             if old != new:
                 changes.append(f"修改學生 {r['學號']} {r['姓名']}：{field} {old!r} → {new!r}")
@@ -134,6 +152,8 @@ def plan(db, rows, year):
             s.name, s.class_, s.school_year = r["姓名"], r["班級"], year
             s.status = DROPPED.get(r["備註"], "active")
             s.group_id = None
+            adv = _advisor(r["指導老師"])
+            s.advisor_id = by_name[adv].id if adv in by_name else None
             by_sid[r["學號"]] = s
         db.flush()
 

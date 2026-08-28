@@ -13,6 +13,12 @@ function teacherNames(g, teachers) {
   return g.teacher_ids.map((tid) => teachers.find((t) => t.id === tid)?.name ?? tid).join('、')
 }
 
+// 沒分組的人老師掛在 advisor_id 上（代理指導），有分組的人老師從組別帶出來。
+function advisorName(s, teachers) {
+  const t = teachers.find((x) => x.id === s.advisor_id)
+  return t ? `${t.name}（代理）` : ''
+}
+
 export function studentRows(students, { groups, teachers }) {
   return students.map((s) => {
     const g = groups.find((x) => x.id === s.group_id) ?? null
@@ -21,8 +27,8 @@ export function studentRows(students, { groups, teachers }) {
       學號: s.student_id,
       姓名: s.name,
       狀態: statusLabel(s.status),
-      組別: g ? `第${g.number}組` : '未分組',
-      指導老師: g ? teacherNames(g, teachers) : '',
+      組別: g ? `第${g.number}組` : (s.advisor_id ? '暫時分組' : '未分組'),
+      指導老師: g ? teacherNames(g, teachers) : advisorName(s, teachers),
       專題類別: g?.category ?? '',
       專題名稱: g?.name ?? '',
     }

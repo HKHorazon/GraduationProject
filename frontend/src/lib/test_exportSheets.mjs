@@ -17,6 +17,7 @@ const students = [
   { id: 's2', student_id: 'A11002', name: '李小華', class_: '三甲', school_year: '114', group_id: 'g1', status: 'suspended' },
   { id: 's3', student_id: 'A11003', name: '張三', class_: null, school_year: '113', group_id: null, status: 'exempted' },
   { id: 's4', student_id: 'A11004', name: '舊資料', class_: null, school_year: '113', group_id: null, status: 'inactive' },
+  { id: 's5', student_id: 'A11005', name: '代理生', class_: null, school_year: '113', group_id: null, advisor_id: 't1', status: 'active' },
 ]
 
 const sRows = studentRows(students, { groups, teachers })
@@ -26,7 +27,10 @@ assert.equal(sRows[0]['指導老師'], '陳老師、林老師')
 assert.equal(sRows[1]['狀態'], '休學')
 assert.equal(sRows[2]['狀態'], '抵免')
 assert.equal(sRows[2]['組別'], '未分組')
+assert.equal(sRows[2]['指導老師'], '')     // 沒組也沒代理老師
 assert.equal(sRows[3]['狀態'], '休退學') // 舊值仍看得懂
+assert.equal(sRows[4]['組別'], '暫時分組')        // 沒組但有代理指導
+assert.equal(sRows[4]['指導老師'], '陳老師（代理）')
 
 const gRows = groupRows(groups, { students, teachers })
 assert.equal(gRows[0]['學年度'], '114 學年')

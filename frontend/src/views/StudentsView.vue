@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus, Download } from 'lucide-vue-next'
+import { ChevronUp, ChevronDown, ChevronsUpDown, UserMinus, UserCog, Download } from 'lucide-vue-next'
 import XLSX from 'xlsx-js-style'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
@@ -30,8 +30,14 @@ function getGroup(group_id) {
 }
 function getTeacherNames(group_id) {
   const g = getGroup(group_id)
-  if (!g) return '—'
+  if (!g) return ''
   return g.teacher_ids.map(tid => data.teachers.find(t => t.id === tid)?.name ?? tid).join('、')
+}
+// 老師欄：有組就是組的指導老師；沒組但掛了代理指導老師就顯示「范立揚（代理）」。
+function teacherCell(s) {
+  if (s.group_id) return getTeacherNames(s.group_id) || '—'
+  const a = data.teachers.find(t => t.id === s.advisor_id)
+  return a ? `${a.name}（代理）` : '—'
 }
 
 // Filters
@@ -66,12 +72,15 @@ const filtered = computed(() => {
     if (!showInactive.value && s.status !== 'active') return false
     if (filterYear.value && s.school_year !== filterYear.value) return false
     if (filterTeacher.value) {
-      const names = g?.teacher_ids.map(tid => data.teachers.find(t => t.id === tid)?.name) ?? []
+      const names = g
+        ? g.teacher_ids.map(tid => data.teachers.find(t => t.id === tid)?.name)
+        : [data.teachers.find(t => t.id === s.advisor_id)?.name]
       if (!names.includes(filterTeacher.value)) return false
     }
     if (filterCategory.value && g?.category !== filterCategory.value) return false
     if (filterGrouped.value === 'grouped' && !s.group_id) return false
-    if (filterGrouped.value === 'ungrouped' && s.group_id) return false
+    if (filterGrouped.value === 'acting' && (s.group_id || !s.advisor_id)) return false
+    if (filterGrouped.value === 'ungrouped' && (s.group_id || s.advisor_id)) return false
     if (search.value) {
       const q = search.value.toLowerCase()
       return s.name.toLowerCase().includes(q)
@@ -88,7 +97,7 @@ const filtered = computed(() => {
       case 'student_id':  av = a.student_id;  bv = b.student_id;  break
       case 'name':        av = a.name;         bv = b.name;         break
       case 'group':       av = getGroup(a.group_id)?.number ?? 999; bv = getGroup(b.group_id)?.number ?? 999; break
-      case 'teacher':     av = getTeacherNames(a.group_id); bv = getTeacherNames(b.group_id); break
+      case 'teacher':     av = teacherCell(a); bv = teacherCell(b); break
       case 'category':    av = getGroup(a.group_id)?.category ?? ''; bv = getGroup(b.group_id)?.category ?? ''; break
       case 'project':     av = getGroup(a.group_id)?.name ?? ''; bv = getGroup(b.group_id)?.name ?? ''; break
       default: return 0
@@ -131,7 +140,38 @@ function studentActions(s) {
       disabled: !s.group_id,
       handler: () => router.push({ path: '/changes/remove-student', query: { student: s.id } }),
     },
+    {
+      label: '設定代理指導老師',
+      icon: UserCog,
+      disabled: !!s.group_id,   // 有組的人老師從組別帶出來，不用代理
+      handler: () => openAdvisor(s),
+    },
   ]
+}
+
+// 代理指導老師：未分組的學生先掛一位老師帶。
+const advisorFor = ref(null)
+const advisorPick = ref('')
+const advisorBusy = ref(false)
+const advisorError = ref('')
+
+function openAdvisor(s) {
+  advisorFor.value = s
+  advisorPick.value = s.advisor_id ?? ''
+  advisorError.value = ''
+}
+
+async function saveAdvisor() {
+  advisorBusy.value = true
+  advisorError.value = ''
+  try {
+    await data.updateStudent(advisorFor.value.id, { advisor_id: advisorPick.value || null })
+    advisorFor.value = null
+  } catch (e) {
+    advisorError.value = e.message || '儲存失敗'
+  } finally {
+    advisorBusy.value = false
+  }
 }
 </script>
 
@@ -168,6 +208,7 @@ function studentActions(s) {
           <select v-model="filterGrouped" class="input w-36 text-xs">
             <option value="">分組狀態（全部）</option>
             <option value="grouped">已分組</option>
+            <option value="acting">暫時分組（代理）</option>
             <option value="ungrouped">未分組</option>
           </select>
           <label class="flex items-center gap-1.5 px-2 text-xs cursor-pointer select-none
@@ -240,9 +281,11 @@ function studentActions(s) {
                       title="組長"
                     >★ 組長</span>
                   </span>
-                  <span v-else class="text-slate-600 dark:text-slate-400 text-xs">未分組</span>
+                  <span v-else class="text-slate-600 dark:text-slate-400 text-xs">
+                    {{ s.advisor_id ? '暫時分組' : '未分組' }}
+                  </span>
                 </td>
-                <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getTeacherNames(s.group_id) }}</td>
+                <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ teacherCell(s) }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getGroup(s.group_id)?.category ?? '—' }}</td>
                 <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">
                   <GroupName v-if="s.group_id" :group="getGroup(s.group_id)" />
@@ -262,6 +305,32 @@ function studentActions(s) {
         </div>
         <div class="px-4 py-2 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-[#2a3347]">
           顯示 {{ filtered.length }} / {{ data.students.length }} 筆
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定代理指導老師 -->
+    <div v-if="advisorFor" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+         @click.self="advisorFor = null">
+      <div class="card w-full max-w-md p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">設定代理指導老師</h3>
+        <p class="text-xs text-slate-600 dark:text-slate-400">
+          {{ advisorFor.name }}（{{ advisorFor.student_id }}）還沒有專題組，
+          可以先指定一位老師代理指導。分組後老師會改由組別帶出來。
+        </p>
+        <div>
+          <label class="label">指導老師</label>
+          <select v-model="advisorPick" class="input w-full text-sm">
+            <option value="">不指定</option>
+            <option v-for="t in data.teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+        <p v-if="advisorError" class="text-xs text-red-700 dark:text-red-400">{{ advisorError }}</p>
+        <div class="flex gap-2">
+          <button class="btn-primary text-xs" :disabled="advisorBusy" @click="saveAdvisor">
+            {{ advisorBusy ? '處理中…' : '儲存' }}
+          </button>
+          <button class="btn-secondary text-xs" :disabled="advisorBusy" @click="advisorFor = null">取消</button>
         </div>
       </div>
     </div>
