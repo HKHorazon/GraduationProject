@@ -263,8 +263,7 @@ async function saveAdvisor() {
               >
                 <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
-                <td class="px-4 py-3 font-medium"
-                    :class="s.status !== 'active' ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
+                <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                   <StudentName :student="s" />
                   <span v-if="s.status !== 'active'"
                         class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium
@@ -289,11 +288,14 @@ async function saveAdvisor() {
                       title="組長"
                     >★ 組長</span>
                   </span>
-                  <span v-else class="text-slate-600 dark:text-slate-400 text-xs">
+                  <span v-else
+                        class="px-2 py-0.5 rounded-full text-xs font-medium
+                               border border-red-300 dark:border-red-700/50
+                               bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
                     {{ s.advisor_id ? '暫時分組' : '未分組' }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ teacherCell(s) }}</td>
+                <td class="px-4 py-3 text-slate-800 dark:text-white text-xs">{{ teacherCell(s) }}</td>
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ getGroup(s.group_id)?.category ?? '—' }}</td>
                 <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">
                   <GroupName v-if="s.group_id" :group="getGroup(s.group_id)" />

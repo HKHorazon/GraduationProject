@@ -23,9 +23,10 @@ def login(
         or not account.active
         or not verify_password(form.password, account.password_hash)
     ):
+        # 使用者看得到的訊息一律 zh-TW；停用的帳號也走同一句，不透露帳號存在與否。
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="帳號或密碼錯誤",
         )
     token = create_access_token(subject=account.id, role=account.role)
     return Token(access_token=token)

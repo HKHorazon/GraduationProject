@@ -165,20 +165,15 @@ Detailed templates live in project skills — read the relevant one before writi
 3. Write-UI is hidden with `perms.canEdit('<page-key>', auth.role)`; whole-page access with `perms.canAccess(...)` (`<NoAccess>` in `components/common/`). `auth.isAdmin` only for 帳號管理／權限設定. **Never branch on a role string** (`role === 'editor'`) — that was the bug where granting a page did nothing. UX only; the backend check is the real guard.
 4. Student and group names render through the `StudentName` / `GroupName` components (they handle logged-out masking via `maskName` and editor click-through). Never print a raw student name directly.
 5. Icons: `lucide-vue-next` only. No new UI/component/CSS libraries.
-6. Styling: Tailwind + the shared component classes in `src/assets/main.css` (`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`). **Every screen must look correct in BOTH themes** — dark is the default (Dark Tech), light is warm parchment (`darkMode: 'class'`). Never build a screen for one theme only.
+6. Styling: Tailwind + the shared component classes in `src/assets/main.css` (`.card .input .btn-primary .btn-secondary .btn-danger .label .id-mono`). **Every screen must look correct in BOTH themes** — dark is the default (Dark Tech), light is Tech Grey（灰底帶一點藍）(`darkMode: 'class'`). Never build a screen for one theme only.
 
    **顏色與排版有各自的 skill，動手前必讀 —— 不要靠記憶配色：**
    - **`web-color`** — 唯一色票、已量測的對比度、禁止事項。摘要：弱化文字一律 `text-slate-600 dark:text-slate-400`；淺色模式的狀態文字用 `-700`/`-800` 級（`cyan-800`/`red-700`/`amber-800`/`emerald-800`/`blue-700`），**亮青 `#00b3d8` 不能當文字也不能配白字**；`.vue` 內禁止原始 hex；每個 `bg-`/`text-`/`border-` 都要有 `dark:` 對子；禁止再加 `main.css` 的 `!important` 補丁。違規用 `node scripts/check-colors.mjs` 掃得出來。
    - **`web-display`** — 頁面骨架、間距／字級尺標、表格／表單／篩選列／彈窗／空狀態的固定寫法、圖示尺寸、z-index 三階、RWD 檢查點。
 
-   | Token | Dark (default) | Light (parchment) |
-   |---|---|---|
-   | page bg | `#0f1117` | `#ece3cf` |
-   | sidebar/section | `#161b27` | `#f7f1e1` |
-   | card | `#1e2535` (`dark-card`) | `#f7f1e1` |
-   | border | `#2a3347` (`dark-border`) | `#ddd0b3` |
-   | accent | `#00d4ff` cyan (`accent`) | `#00b3d8` / text `#0e7490` |
-   | fonts | `font-display` Space Grotesk · `font-sans` DM Sans/Noto Sans TC · `font-mono` Fira Code | same |
+   色票**只有 `web-color` 一份**（這裡不再複製一張表——複製過的那張已經跟實際配色走鐘過一次：
+   淺色早就從羊皮紙換成 Tech Grey 灰藍，CLAUDE.md 卻還寫著 `#ece3cf`）。
+   字型固定：`font-display` Space Grotesk · `font-sans` DM Sans/Noto Sans TC · `font-mono` Fira Code。
 
    Table headers: `text-[10px] font-mono uppercase tracking-widest text-slate-600 dark:text-slate-400`. Badges: 已分組 cyan, 未分組 slate, INACTIVE amber — 兩個主題的完整寫法見 `web-color`。
 
