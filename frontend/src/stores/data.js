@@ -67,6 +67,14 @@ export const useDataStore = defineStore('data', () => {
     return created
   }
 
+  // 全體升級一個年級（super_admin）。回傳統計 + 有變動的學生，就地換掉。
+  async function promoteStudents() {
+    const res = await api.post('/students/promote')
+    const byId = Object.fromEntries(res.students.map((s) => [s.id, s]))
+    students.value = students.value.map((s) => byId[s.id] ?? s)
+    return res
+  }
+
   async function deleteStudent(id) {
     await api.delete(`/students/${id}`)
     students.value = students.value.filter((s) => s.id !== id)
@@ -169,6 +177,7 @@ export const useDataStore = defineStore('data', () => {
     updateStudent,
     createStudent,
     bulkCreateStudents,
+    promoteStudents,
     createTeacher,
     deleteStudent,
     updateGroup,

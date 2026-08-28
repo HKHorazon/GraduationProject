@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
-from ..deps import get_current_account_optional, require_editor
+from ..deps import get_current_account_optional, require_editor, require_super_admin
 from ..models import Account, Group, Student
 from ..privacy import mask_name
-from ..schemas import StudentCreate, StudentOut, StudentUpdate
+from ..schemas import PromoteResult, StudentCreate, StudentOut, StudentUpdate
 
 router = APIRouter()
 
@@ -45,6 +45,35 @@ def _record_membership_events(
         audit.event(db, actor, "student_move",
                     f"{name}：{_group_label(db, old_group)} → {_group_label(db, new_group)}",
                     student_id=student.id, group_id=new_group)
+
+
+# 班級字串把年級包在中間：「日三甲」= 日間部 + 三年級 + 甲班（舊資料也可能只有「甲」）。
+GRADE_CHARS = "一二三四五六七八九"
+GRADUATED_SUFFIX = "(畢業)"
+
+
+def split_class(c: str | None) -> tuple[str, str]:
+    """「日三甲」→ ("日三", "甲")。沒有年級字時前段為空。"""
+    s = (c or "").strip()
+    i = max((k for k, ch in enumerate(s) if ch in GRADE_CHARS), default=-1)
+    return (s[: i + 1], s[i + 1 :]) if i >= 0 else ("", s)
+
+
+def _promote_class(c: str | None) -> str | None:
+    """升一個年級：「日三甲」→「日四甲」；四年級以上 → 「甲(畢業)」（只留學年＋班別）。
+
+    無法判讀年級或已畢業的回 None，代表跳過不動。
+    """
+    s = (c or "").strip()
+    if not s or GRADUATED_SUFFIX in s:
+        return None
+    head, letter = split_class(s)
+    if not head:
+        return None
+    grade = GRADE_CHARS.index(head[-1])          # 0-based：三 → 2
+    if grade >= 3:                                # 四年級（含以上）畢業
+        return f"{letter}{GRADUATED_SUFFIX}"
+    return head[:-1] + GRADE_CHARS[grade + 1] + letter
 
 
 def _next_num(db: Session) -> int:
@@ -135,6 +164,42 @@ def create_students_bulk(
     for s in created:
         db.refresh(s)
     return created
+
+
+@router.post("/promote", response_model=PromoteResult)
+def promote_students(
+    db: Session = Depends(get_db),
+    actor: Account = Depends(require_super_admin),
+):
+    """全體升級一個年級（super_admin only）：四年級改為「班別(畢業)」。
+
+    只改班級字串，school_year / status 一律不動；班級變更依慣例僅記入 db_logs。
+    """
+    changed: list[Student] = []
+    graduated = 0
+    skipped = 0
+    for s in db.scalars(select(Student)).all():
+        new_class = _promote_class(s.class_)
+        if new_class is None:
+            skipped += 1
+            continue
+        audit.dblog(db, actor, "update", "students", s.id,
+                    {"class": {"old": s.class_, "new": new_class}})
+        s.class_ = new_class
+        changed.append(s)
+        if GRADUATED_SUFFIX in new_class:
+            graduated += 1
+    audit.dblog(db, actor, "promote", "students", None,
+                {"promoted": len(changed) - graduated, "graduated": graduated, "skipped": skipped})
+    db.commit()
+    for s in changed:
+        db.refresh(s)
+    return PromoteResult(
+        promoted=len(changed) - graduated,
+        graduated=graduated,
+        skipped=skipped,
+        students=[StudentOut.model_validate(s) for s in changed],
+    )
 
 
 @router.patch("/{student_id}", response_model=StudentOut)

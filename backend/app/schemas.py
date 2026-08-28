@@ -52,6 +52,14 @@ class StudentOut(StudentBase):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
+class PromoteResult(BaseModel):
+    """全體升級的結果統計；students 只含有變動的列，供前端就地更新。"""
+    promoted: int
+    graduated: int
+    skipped: int
+    students: list[StudentOut] = []
+
+
 # ---------- Group ----------
 class GroupBase(BaseModel):
     number: int

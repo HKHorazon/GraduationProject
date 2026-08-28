@@ -7,7 +7,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useDataStore } from '@/stores/data'
-import { rocYear, yearClass } from '@/lib/year'
+import { rocYear, splitClass } from '@/lib/year'
 import { statusLabel } from '@/lib/studentStatus'
 import { studentRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import StudentName from '@/components/common/StudentName.vue'
@@ -94,6 +94,7 @@ const filtered = computed(() => {
     let av, bv
     switch (sortCol.value) {
       case 'school_year': av = a.school_year; bv = b.school_year; break
+      case 'class_letter': av = splitClass(a.class_).letter; bv = splitClass(b.class_).letter; break
       case 'student_id':  av = a.student_id;  bv = b.student_id;  break
       case 'name':        av = a.name;         bv = b.name;         break
       case 'group':       av = getGroup(a.group_id)?.number ?? 999; bv = getGroup(b.group_id)?.number ?? 999; break
@@ -117,7 +118,8 @@ const filtered = computed(() => {
 })
 
 const cols = [
-  { key: 'school_year', label: '學年班級' },
+  { key: 'school_year', label: '學年年級' },
+  { key: 'class_letter', label: '班別' },
   { key: 'student_id',  label: '學號' },
   { key: 'name',        label: '姓名' },
   { key: 'group',       label: '組別' },
@@ -253,7 +255,8 @@ async function saveAdvisor() {
                 :key="s.id"
                 class="hover:bg-slate-50 dark:hover:bg-[#2a3347]/20 transition-colors"
               >
-                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ yearClass(s.school_year, s.class_) }}</td>
+                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ rocYear(s.school_year) }}{{ splitClass(s.class_).grade }}</td>
+                <td class="px-4 py-3 text-slate-700 dark:text-white text-xs">{{ splitClass(s.class_).letter || '—' }}</td>
                 <td class="px-4 py-3 id-mono">{{ s.student_id }}</td>
                 <td class="px-4 py-3 font-medium"
                     :class="s.status !== 'active' ? 'text-red-700 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'">
@@ -296,7 +299,7 @@ async function saveAdvisor() {
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td :colspan="auth.isEditor ? 8 : 7" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
+                <td :colspan="auth.isEditor ? 9 : 8" class="px-4 py-10 text-center text-slate-600 dark:text-slate-400 text-sm">
                   找不到符合條件的學生
                 </td>
               </tr>

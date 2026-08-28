@@ -85,7 +85,11 @@ function teacherName(id) {
   return data.teachers.find((t) => t.id === id)?.name ?? id
 }
 function members(groupId) {
-  return data.students.filter((s) => s.group_id === groupId)
+  // leader first, rest keep their existing order
+  const leaderId = data.groups.find((g) => g.id === groupId)?.leader_id
+  return data.students
+    .filter((s) => s.group_id === groupId)
+    .sort((a, b) => (a.id === leaderId ? -1 : 0) - (b.id === leaderId ? -1 : 0))
 }
 const categories = computed(() =>
   [...new Set(data.groups.map((g) => g.category).filter(Boolean))]

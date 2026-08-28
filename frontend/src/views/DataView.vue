@@ -8,7 +8,7 @@ import { rocYear } from '@/lib/year'
 import { studentRows, groupRows, buildWorkbook, exportFileName } from '@/lib/exportSheets'
 import {
   UserPlus, Upload, GraduationCap, ShieldOff, Check, FileSpreadsheet, X,
-  LayoutDashboard, FolderPlus, Users, LayoutList, Download,
+  LayoutDashboard, FolderPlus, Users, LayoutList, Download, ArrowUpNarrowWide,
 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -23,14 +23,37 @@ const classes = computed(() =>
   [...new Set(data.students.map((s) => s.class_).filter(Boolean))]
 )
 
-const TABS = [
+const TABS = computed(() => [
   { key: 'overview', label: '總覽', icon: LayoutDashboard },
   { key: 'student', label: '新增學生', icon: UserPlus },
   { key: 'bulk', label: '批次匯入學生', icon: Upload },
   { key: 'group', label: '新增組別', icon: FolderPlus },
   { key: 'teacher', label: '新增老師', icon: GraduationCap },
-]
+  // 全體升級會動到所有學生，只開給 super_admin
+  ...(auth.isSuperAdmin ? [{ key: 'promote', label: '全體升級', icon: ArrowUpNarrowWide }] : []),
+])
 const tab = ref('overview')
+
+// --- 全體升級 ---
+const promoteBusy = ref(false)
+const promoteMessage = ref('')
+const promoteError = ref('')
+
+async function promoteAll() {
+  promoteMessage.value = ''
+  promoteError.value = ''
+  const n = data.students.length
+  if (!confirm(`確定將全部 ${n} 位學生升一個年級？三年級 → 四年級，四年級改為「甲(畢業)」。此動作無法復原。`)) return
+  promoteBusy.value = true
+  try {
+    const r = await data.promoteStudents()
+    promoteMessage.value = `已升級 ${r.promoted} 位、畢業 ${r.graduated} 位、跳過 ${r.skipped} 位。`
+  } catch (e) {
+    promoteError.value = e.message || '升級失敗'
+  } finally {
+    promoteBusy.value = false
+  }
+}
 
 function flash(msgRef) {
   return (text) => {
@@ -567,6 +590,35 @@ function downloadTemplate() {
               {{ t.name }}
             </span>
           </div>
+        </div>
+      </div>
+
+      <!-- 全體升級（super_admin） -->
+      <div v-if="auth.isSuperAdmin" v-show="tab === 'promote'" class="card p-6 space-y-4">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">全體升級一個年級</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            把每位學生班級裡的年級加一（例：112日三甲 → 112日四甲）。
+            四年級改為畢業，只留學年與班別（例：111日四甲 → 111甲(畢業)）。
+            學年度、分組與休退學狀態都不會變動。
+          </p>
+        </div>
+
+        <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc pl-4">
+          <li>共 {{ data.students.length }} 位學生，含休學／退學／抵免者一併升級。</li>
+          <li>班級看不出年級（例如只填「甲」）或已標記畢業的，會自動跳過。</li>
+          <li>此動作無法復原，執行前請先到總覽匯出一份 Excel 備份。</li>
+        </ul>
+
+        <p v-if="promoteError" class="text-xs text-red-700 dark:text-red-400">{{ promoteError }}</p>
+        <p v-if="promoteMessage" class="text-xs text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
+          <Check class="w-3.5 h-3.5" />{{ promoteMessage }}
+        </p>
+
+        <div class="flex">
+          <button type="button" class="btn-danger flex items-center gap-1.5" :disabled="promoteBusy" @click="promoteAll">
+            <ArrowUpNarrowWide class="w-4 h-4" /> {{ promoteBusy ? '升級中…' : '執行全體升級' }}
+          </button>
         </div>
       </div>
 

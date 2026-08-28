@@ -23,3 +23,15 @@ export function yearClass(year, c) {
   const k = classLetter(c)
   return k ? `${y}${k}` : y
 }
+
+// 班級字串把年級包在中間：「日三甲」= 日間部 + 三年級 + 甲班。
+// 拆成年級段（含年級字）與班別段，供列表分欄顯示；沒有年級字時年級段為空。
+const GRADE_CHARS = '一二三四五六七八九'
+export function splitClass(c) {
+  const s = String(c ?? '').trim()
+  let i = -1
+  for (let k = s.length - 1; k >= 0; k--) {
+    if (GRADE_CHARS.includes(s[k])) { i = k; break }
+  }
+  return i < 0 ? { grade: '', letter: s } : { grade: s.slice(0, i + 1), letter: s.slice(i + 1) }
+}
