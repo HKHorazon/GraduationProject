@@ -97,6 +97,14 @@ def delete_account(
     account = db.get(Account, account_id)
     if not account:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
+    group = db.get(PermissionGroup, account.role)
+    if group is not None and group.is_admin:
+        # 管理員帳號一律不可刪：刪光了就沒人能進帳號管理／權限設定，系統鎖死。
+        # 真要刪，先把它改到別的分組。
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"「{account.username}」是管理員帳號，不可刪除；請先改成其他權限分組",
+        )
     audit.dblog(db, actor, "delete", "accounts", account.id,
                 {"username": account.username})
     db.delete(account)

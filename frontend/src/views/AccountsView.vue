@@ -194,6 +194,7 @@ async function submitAdd() {
                              transition-colors cursor-pointer"
                     >編輯</button>
                     <button
+                      v-if="!perms.isAdminGroup(acc.role)"
                       @click="askDelete(acc.id)"
                       class="p-1.5 rounded-md text-slate-600
                              hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 dark:hover:text-red-400

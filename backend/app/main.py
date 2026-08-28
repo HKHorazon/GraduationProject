@@ -9,7 +9,7 @@ app = FastAPI(title="Graduation Project API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
+    # 沒有 allow_credentials：驗證走 Authorization: Bearer，不用 cookie。
     allow_methods=["*"],
     allow_headers=["*"],
 )

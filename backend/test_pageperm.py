@@ -132,5 +132,13 @@ assert req("DELETE", f"/permissions/groups/{gkey}", admin)[0] == 200
 assert req("PUT", "/permissions", admin, {"viewer": {"no-such-page": "view"}})[0] == 400
 assert req("PUT", "/permissions", admin, {"viewer": {"students": "superuser"}})[0] == 422
 
+# --- 管理員帳號不可刪（刪光就沒人進得去帳號管理）---
+s, acc = req("POST", "/accounts", admin,
+             {"username": "admin_probe", "password": "password", "role": "super_admin"})
+assert s == 201, (s, acc)
+assert req("DELETE", f"/accounts/{acc['id']}", admin)[0] == 400, "管理員帳號不可刪"
+assert req("PATCH", f"/accounts/{acc['id']}", admin, {"role": "viewer"})[0] == 200
+assert req("DELETE", f"/accounts/{acc['id']}", admin)[0] == 204, "改成一般分組後才可刪"
+
 print("ALL BACKEND PERMISSION CHECKS PASSED")
 
