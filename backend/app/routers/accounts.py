@@ -24,6 +24,11 @@ def _check_group(db: Session, key: str | None) -> None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "「未登入訪客」不能指派給帳號")
 
 
+def _is_admin(db: Session, key: str | None) -> bool:
+    group = db.get(PermissionGroup, key) if key else None
+    return group is not None and group.is_admin
+
+
 def _next_id(db: Session) -> str:
     ids = db.scalars(select(Account.id)).all()
     nums = [int(i[1:]) for i in ids if i.startswith("u") and i[1:].isdigit()]
@@ -74,6 +79,16 @@ def update_account(
     data = body.model_dump(exclude_unset=True)
     if "role" in data:
         _check_group(db, data["role"])
+    # 不能對自己動手：自我停用或自我降級都會讓最後一個管理員把自己鎖在外面。
+    # 別人還是可以降你的權（要刪也是先改分組），所以系統永遠留得住至少一個管理員。
+    if account.id == actor.id:
+        if data.get("active") is False:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "不能停用自己的帳號")
+        new_role = data.get("role", account.role)
+        if new_role != account.role and not _is_admin(db, new_role):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "不能把自己移出管理員分組；請由其他管理員調整"
+            )
     changed = [k for k in data.keys()]
     if "password" in data:
         password = data.pop("password")
@@ -97,8 +112,7 @@ def delete_account(
     account = db.get(Account, account_id)
     if not account:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
-    group = db.get(PermissionGroup, account.role)
-    if group is not None and group.is_admin:
+    if _is_admin(db, account.role):
         # 管理員帳號一律不可刪：刪光了就沒人能進帳號管理／權限設定，系統鎖死。
         # 真要刪，先把它改到別的分組。
         raise HTTPException(

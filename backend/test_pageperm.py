@@ -140,5 +140,11 @@ assert req("DELETE", f"/accounts/{acc['id']}", admin)[0] == 400, "管理員帳�
 assert req("PATCH", f"/accounts/{acc['id']}", admin, {"role": "viewer"})[0] == 200
 assert req("DELETE", f"/accounts/{acc['id']}", admin)[0] == 204, "改成一般分組後才可刪"
 
+# --- 管理員不能對自己動手（自我降級／自我停用一樣會鎖死系統）---
+me = req("GET", "/auth/me", admin)[1]["id"]
+assert req("PATCH", f"/accounts/{me}", admin, {"role": "viewer"})[0] == 400, "不能自我降級"
+assert req("PATCH", f"/accounts/{me}", admin, {"active": False})[0] == 400, "不能自我停用"
+assert req("PATCH", f"/accounts/{me}", admin, {"role": "super_admin"})[0] == 200, "改成同樣的分組不受影響"
+
 print("ALL BACKEND PERMISSION CHECKS PASSED")
 
