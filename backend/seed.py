@@ -99,6 +99,7 @@ PAGE_PERMISSIONS = {
     "reviews":          {"guest": "none", "viewer": "none", "editor": "edit"},
     "data":             {"guest": "none", "viewer": "none", "editor": "edit"},
     "audit-logs":       {"guest": "none", "viewer": "none", "editor": "edit"},
+    "password":         {"guest": "none", "viewer": "edit", "editor": "edit"},
 }
 
 

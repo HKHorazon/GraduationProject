@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import audit
+from .. import audit, pageperm
 from ..db import get_db
 from ..deps import get_current_account
 from ..models import Account
@@ -41,9 +41,9 @@ def me(account: Account = Depends(get_current_account)):
 def change_password(
     body: PasswordChange,
     db: Session = Depends(get_db),
-    account: Account = Depends(get_current_account),
+    account: Account = Depends(pageperm.require_edit("password")),
 ):
-    """Any logged-in user can change their own password (old password required)."""
+    """改自己的密碼（要舊密碼）；能不能改由 password 頁的權限決定。"""
     if not verify_password(body.old_password, account.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "舊密碼不正確")
     account.password_hash = hash_password(body.new_password)

@@ -35,7 +35,7 @@ LEVELS = tuple(ORDER)
 # on PUT /permissions — page existence itself is still the frontend's business.
 PAGE_KEYS = frozenset({
     "students", "groups", "remove-student", "group-change", "group-order",
-    "documents", "documents-export", "reviews", "data", "audit-logs",
+    "documents", "documents-export", "reviews", "data", "audit-logs", "password",
 })
 
 

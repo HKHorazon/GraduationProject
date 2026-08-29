@@ -3,8 +3,11 @@ import { ref } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
+import NoAccess from '@/components/common/NoAccess.vue'
 
 const auth = useAuthStore()
+const perms = usePermissionsStore()
 
 const oldPwd = ref('')
 const newPwd = ref('')
@@ -45,7 +48,10 @@ async function submit() {
 
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <NoAccess v-if="auth.isLoggedIn && !perms.canEdit('password', auth.role)"
+              hint="此頁面只有操作功能，需要「可編輯」權限，請洽系統管理員" />
+
+    <div v-else class="space-y-4">
       <div>
         <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">修改密碼</h2>
         <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">

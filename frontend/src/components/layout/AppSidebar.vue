@@ -73,9 +73,8 @@ function toggleCollapse() {
         <SidebarItem v-if="perms.canAccess('audit-logs', auth.role)" to="/audit-logs" label="異動紀錄" :icon="History" :collapsed="collapsed" />
       </SidebarGroup>
 
-      <!-- 修改密碼不受權限設定管控：登入後人人可用 -->
       <SidebarGroup v-if="auth.isLoggedIn" label="帳號" :icon="User" :collapsed="collapsed">
-        <SidebarItem to="/password" label="修改密碼" :icon="KeyRound" :collapsed="collapsed" />
+        <SidebarItem v-if="perms.canEdit('password', auth.role)" to="/password" label="修改密碼" :icon="KeyRound" :collapsed="collapsed" />
         <SidebarItem v-if="auth.isAdmin" to="/accounts" label="帳號管理" :icon="Settings" :collapsed="collapsed" />
         <SidebarItem v-if="auth.isAdmin" to="/permissions" label="權限設定" :icon="ShieldCheck" :collapsed="collapsed" />
       </SidebarGroup>

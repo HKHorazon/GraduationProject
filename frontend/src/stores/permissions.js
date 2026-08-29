@@ -15,6 +15,7 @@ export const PAGES = [
   { key: 'reviews',         label: '審查評分',    route: '/reviews' },
   { key: 'data',            label: '資料管理',    route: '/data',                   editOnly: true },
   { key: 'audit-logs',      label: '異動紀錄',    route: '/audit-logs' },
+  { key: 'password',        label: '修改密碼',    route: '/password',               editOnly: true },
 ]
 
 const EDIT_ONLY = new Set(PAGES.filter((p) => p.editOnly).map((p) => p.key))
@@ -52,6 +53,7 @@ export const DEFAULT_PERMISSIONS = {
   'reviews':          { guest: 'none', viewer: 'none', editor: 'edit' },
   'data':             { guest: 'none', viewer: 'none', editor: 'edit' },
   'audit-logs':       { guest: 'none', viewer: 'none', editor: 'edit' },
+  'password':         { guest: 'none', viewer: 'edit', editor: 'edit' },
 }
 
 // perms 是 reactive proxy，structuredClone 會丟 DataCloneError，
