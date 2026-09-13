@@ -1,6 +1,6 @@
-"""把 reference/專題名單NEWcsv.csv 匯入 DB（該學年度以 CSV 為準）。
+"""把名單匯入 DB（該學年度以名單為準）。CSV，或 xlsx 取以學年度命名的工作表。
 
-    python import_projects.py <csv> <學年度> [--apply]
+    python import_projects.py <csv|xlsx> <學年度> [--apply]
 
 不加 --apply 只印出差異（dry-run）。DB 由 DATABASE_URL 決定。
 ponytail: 一次性匯入腳本，跟 seed.py 同層級 — 不寫 audit_logs，不做 CLI 參數框架。
@@ -16,13 +16,14 @@ from app.models import Group, Student, Teacher
 CSV_COLS = ("班級", "學號", "姓名", "專題名稱", "組長", "指導老師", "備註")
 
 
-def _advisor(cell):
-    """「范立揚(代)」→ 范立揚。名單上未分組的學生就是用這格記代理指導老師。"""
-    c = cell.strip()
+def _advisor(r):
+    """未分組學生的代理指導老師：「范立揚(代)」或直接寫名字都算；有組的人回 ""。"""
+    if r["專題名稱"]:
+        return ""
+    c = r["指導老師"].strip()
     for mark in ("(代)", "（代）"):
-        if c.endswith(mark):
-            return c[: -len(mark)].strip()
-    return ""
+        c = c.removesuffix(mark)
+    return c.strip()
 DROPPED = {"退學": "withdrawn", "休學": "suspended", "抵免": "exempted"}
 
 
@@ -32,9 +33,19 @@ def _next_num(existing, prefix):
     return max(nums, default=0) + 1
 
 
-def read_rows(path):
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+def _load(path, year):
+    """CSV，或 xlsx 裡以學年度命名的工作表（List_0913.xlsx 的 112／113）。"""
+    if not path.lower().endswith(".xlsx"):
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            return list(csv.DictReader(f))
+    import openpyxl  # ponytail: 只有匯 xlsx 才需要，不進 requirements
+    it = openpyxl.load_workbook(path, read_only=True)[year].iter_rows(values_only=True)
+    head = [str(h or "").strip() for h in next(it)]
+    return [dict(zip(head, (str(c) if c is not None else "" for c in r))) for r in it if any(r)]
+
+
+def read_rows(path, year):
+    rows = _load(path, year)
     missing = [c for c in CSV_COLS if c not in (rows[0] if rows else {})]
     if missing:
         raise SystemExit(f"CSV 缺少欄位：{missing}")
@@ -43,6 +54,9 @@ def read_rows(path):
         rec = {k: (r[k] or "").strip() for k in CSV_COLS}
         if not rec["學號"]:
             raise SystemExit(f"第 {i} 列缺少學號")
+        rec["姓名"] = rec["姓名"].removesuffix("(組長)").strip()
+        if rec["專題名稱"].startswith("("):  # 「(狀態未知 代定)」不是組名，當未分組
+            rec["專題名稱"] = ""
         out.append(rec)
     seen = set()
     for r in out:
@@ -59,7 +73,7 @@ def plan(db, rows, year):
     # ---- teachers（只認實際帶組的老師，"X(代)" 不建組所以不算） ----
     want_teachers = sorted(
         {r["指導老師"] for r in rows if r["專題名稱"] and r["指導老師"]}
-        | {_advisor(r["指導老師"]) for r in rows if not r["專題名稱"]} - {""}
+        | {_advisor(r) for r in rows} - {""}
     )
     by_name = {t.name: t for t in db.scalars(select(Teacher))}
     new_teachers = [n for n in want_teachers if n not in by_name]
@@ -94,7 +108,7 @@ def plan(db, rows, year):
             continue
         for field, new in (("name", r["姓名"]), ("class_", r["班級"]),
                            ("school_year", year), ("status", status),
-                           ("advisor", _advisor(r["指導老師"]) or None)):
+                           ("advisor", _advisor(r) or None)):
             if field == "advisor":
                 old = s.advisor.name if s.advisor else None
                 if old != new:
@@ -152,12 +166,12 @@ def plan(db, rows, year):
             s.name, s.class_, s.school_year = r["姓名"], r["班級"], year
             s.status = DROPPED.get(r["備註"], "active")
             s.group_id = None
-            adv = _advisor(r["指導老師"])
+            adv = _advisor(r)
             s.advisor_id = by_name[adv].id if adv in by_name else None
             by_sid[r["學號"]] = s
         db.flush()
 
-        by_name_student = {r["姓名"]: by_sid[r["學號"]] for r in rows}
+        name_of = {r["學號"]: r["姓名"] for r in rows}
         for num, (p, d) in enumerate(projects.items(), start=1):
             g = db.scalar(select(Group).where(Group.school_year == year, Group.name == p))
             if g is None:
@@ -170,7 +184,8 @@ def plan(db, rows, year):
             for sid in d["members"]:
                 by_sid[sid].group_id = g.id
             db.flush()
-            leader = by_name_student.get(d["leader"])
+            # 組長只在自己組員裡找，同名學生不會指錯人
+            leader = next((by_sid[m] for m in d["members"] if name_of[m] == d["leader"]), None)
             g.leader_id = leader.id if leader else None
         db.flush()
 
@@ -182,7 +197,7 @@ def main():
         raise SystemExit(__doc__)
     path, year = sys.argv[1], sys.argv[2]
     do_apply = "--apply" in sys.argv
-    rows = read_rows(path)
+    rows = read_rows(path, year)
     db = SessionLocal()
     try:
         changes, apply = plan(db, rows, year)
