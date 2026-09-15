@@ -10,6 +10,7 @@ import {
   FolderPlus, X, Save, Trash2, Users, GraduationCap, Check, FileText, Search,
 } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
+import { statusLabel } from '@/lib/studentStatus'
 import StudentName from '@/components/common/StudentName.vue'
 
 const auth = useAuthStore()
@@ -417,7 +418,7 @@ async function doDisband() {
               >
                 <!-- avatar -->
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
-                     :class="m.status === 'inactive'
+                     :class="m.status !== 'active'
                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400'
                        : 'bg-blue-100 dark:bg-cyan-900/25 text-blue-700 dark:text-cyan-300'">
                   {{ m.name[0] }}
@@ -438,11 +439,11 @@ async function doDisband() {
                   </div>
                 </div>
 
-                <!-- status: only flag 休退學 -->
-                <div v-if="m.status === 'inactive'" class="flex-shrink-0">
+                <!-- status: 在學以外（休學／退學／抵免／舊資料 inactive）都標出來 -->
+                <div v-if="m.status !== 'active'" class="flex-shrink-0">
                   <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md
                                bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400
-                               border border-amber-200 dark:border-amber-700/40">休退學</span>
+                               border border-amber-200 dark:border-amber-700/40">{{ statusLabel(m.status) }}</span>
                 </div>
               </div>
             </div>

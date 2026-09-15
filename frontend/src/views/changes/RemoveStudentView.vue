@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePermissionsStore } from '@/stores/permissions'
 import NoAccess from '@/components/common/NoAccess.vue'
 import { useDataStore } from '@/stores/data'
-import { Search, X, ArrowRightLeft, UserMinus, UserPlus, Check, UserX, ChevronRight, GraduationCap, Users } from 'lucide-vue-next'
+import { Search, X, ArrowRightLeft, UserMinus, UserPlus, UserCheck, Check, UserX, ChevronRight, GraduationCap, Users } from 'lucide-vue-next'
 import { rocYear, yearClass } from '@/lib/year'
 import { INACTIVE_STATUSES, statusLabel } from '@/lib/studentStatus'
 import StudentName from '@/components/common/StudentName.vue'
@@ -135,19 +135,21 @@ const TABS = [
     enabled: () => !isInactive.value && !hasGroup.value,
     color: 'cyan',
   },
+  // 同一個頁籤：在學 → 休退學／抵免；已離開 → 恢復在學
   {
     key: 'withdraw',
-    label: '休退學／抵免',
-    icon: UserX,
-    enabled: () => !isInactive.value,
-    color: 'red',
+    get label() { return isInactive.value ? '恢復在學' : '休退學／抵免' },
+    get icon() { return isInactive.value ? UserCheck : UserX },
+    get color() { return isInactive.value ? 'emerald' : 'red' },
+    enabled: () => true,
   },
 ]
 
 const TAB_ACTIVE_CLASS = {
-  cyan:   'border-cyan-400 text-cyan-800 bg-cyan-400/5 dark:text-cyan-400',
-  orange: 'border-orange-400 text-orange-400 bg-orange-400/5',
-  red:    'border-red-400 text-red-700 bg-red-400/5 dark:text-red-400',
+  cyan:    'border-cyan-400 text-cyan-800 bg-cyan-400/5 dark:text-cyan-400',
+  orange:  'border-orange-400 text-orange-400 bg-orange-400/5',
+  red:     'border-red-400 text-red-700 bg-red-400/5 dark:text-red-400',
+  emerald: 'border-emerald-400 text-emerald-800 bg-emerald-400/5 dark:text-emerald-400',
 }
 
 function clickTab(tab) {
@@ -216,6 +218,21 @@ async function confirmWithdraw() {
     showToast('warning', `${selected.value.name} 已標記為${label}${suffix}`)
     activeTab.value = null
     withdrawStep.value = 1
+  }
+}
+
+// 休學／退學／抵免 誤標或復學：狀態改回在學，可順便加入組別（同一次 PATCH，異動紀錄會各記一筆）
+async function confirmRestore() {
+  if (!selected.value) return
+  const from = statusLabel(selected.value.status)
+  const toGroup = targetGroupId.value ? data.groups.find(g => g.id === targetGroupId.value) : null
+  const patch = { status: 'active' }
+  if (toGroup) patch.group_id = toGroup.id
+  if (await applyPatch(patch)) {
+    const suffix = toGroup ? `，並加入「${toGroup.name}」` : ''
+    showToast('success', `${selected.value.name} 已由${from}恢復為在學${suffix}`)
+    activeTab.value = null
+    targetGroupId.value = ''
   }
 }
 </script>
@@ -360,7 +377,7 @@ async function confirmWithdraw() {
                  class="flex items-center gap-2 px-4 py-2 text-xs font-mono tracking-wider
                         bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30 text-amber-800 dark:text-amber-400">
               <UserX class="w-3.5 h-3.5" />
-              INACTIVE — 此學生已{{ statusLabel(selected.status) }}，無法調整組別
+              INACTIVE — 此學生已{{ statusLabel(selected.status) }}，需先「恢復在學」才能調整組別
             </div>
 
             <div class="bg-white dark:bg-dark-card px-5 py-4">
@@ -466,7 +483,7 @@ async function confirmWithdraw() {
               <div v-if="!activeTab"
                    class="h-full flex flex-col items-center justify-center gap-2 text-center">
                 <p class="text-xs font-mono text-slate-600 dark:text-slate-700 tracking-widest uppercase">
-                  {{ isInactive ? '— INACTIVE —' : '↑ SELECT OPERATION' }}
+                  {{ isInactive ? '↑ 可使用「恢復在學」' : '↑ SELECT OPERATION' }}
                 </p>
               </div>
 
@@ -564,7 +581,7 @@ async function confirmWithdraw() {
               </div>
 
               <!-- WITHDRAW step 1 -->
-              <div v-else-if="activeTab === 'withdraw' && withdrawStep === 1" class="space-y-4">
+              <div v-else-if="activeTab === 'withdraw' && !isInactive && withdrawStep === 1" class="space-y-4">
                 <div>
                   <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">選擇原因</p>
                   <div class="flex gap-2">
@@ -587,11 +604,11 @@ async function confirmWithdraw() {
                     </li>
                     <li class="flex items-start gap-2">
                       <span class="text-red-700 mt-px dark:text-red-400">›</span>
-                      無法再被加入任何組別
+                      標記期間無法被加入任何組別
                     </li>
                     <li class="flex items-start gap-2">
                       <span class="text-slate-600 dark:text-slate-400 mt-px">›</span>
-                      資料保留，可用相同學號在其他學年重新建立
+                      資料保留，日後可用「恢復在學」復原（原組別需重新選擇）
                     </li>
                   </ul>
                 </div>
@@ -611,7 +628,7 @@ async function confirmWithdraw() {
               </div>
 
               <!-- WITHDRAW step 2 -->
-              <div v-else-if="activeTab === 'withdraw' && withdrawStep === 2" class="space-y-4">
+              <div v-else-if="activeTab === 'withdraw' && !isInactive && withdrawStep === 2" class="space-y-4">
                 <div class="rounded-lg border border-red-400 dark:border-red-500/50 bg-red-50 dark:bg-red-500/10 px-4 py-3 space-y-2
                             shadow-[0_0_16px_rgba(239,68,68,0.1)]">
                   <p class="text-xs font-mono text-red-700 dark:text-red-400 tracking-widest uppercase font-bold">⛔ FINAL CONFIRM</p>
@@ -621,7 +638,7 @@ async function confirmWithdraw() {
                     <span class="font-mono text-xs text-slate-600 ml-1 dark:text-slate-400">（{{ selected.student_id }}）</span>
                     標記為{{ statusLabel(withdrawType) }}？
                   </p>
-                  <p class="text-xs font-mono text-red-700/70 dark:text-red-400">此操作將立即生效。</p>
+                  <p class="text-xs font-mono text-red-700 dark:text-red-400">此操作將立即生效，之後可用「恢復在學」復原。</p>
                 </div>
                 <div class="flex gap-2">
                   <button @click="confirmWithdraw"
@@ -634,6 +651,43 @@ async function confirmWithdraw() {
                     class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
                            border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
                     返回
+                  </button>
+                </div>
+              </div>
+
+              <!-- RESTORE（同一頁籤，已離開的學生才顯示） -->
+              <div v-else-if="activeTab === 'withdraw' && isInactive" class="space-y-4">
+                <div class="rounded-lg border border-emerald-300 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 space-y-1">
+                  <p class="text-sm text-slate-700 dark:text-slate-300">
+                    將 <span class="text-emerald-800 dark:text-emerald-400 font-semibold">{{ selected.name }}</span>
+                    由「{{ statusLabel(selected.status) }}」恢復為在學？
+                  </p>
+                  <p class="text-xs text-slate-600 dark:text-slate-400">恢復後可再加入組別；此變更會記入異動紀錄。</p>
+                </div>
+
+                <div>
+                  <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">同時加入組別（選填）</p>
+                  <select v-model="targetGroupId"
+                    class="w-full px-3 py-2.5 text-sm rounded-lg border outline-none cursor-pointer transition-all
+                           bg-white dark:bg-dark-bg border-slate-300 dark:border-dark-border text-slate-700 dark:text-slate-300
+                           focus:border-cyan-500/60 font-mono dark:[color-scheme:dark]">
+                    <option value="">— 暫不加入組別 —</option>
+                    <option v-for="g in sameYearGroups" :key="g.id" :value="g.id">{{ groupLabel(g) }}</option>
+                  </select>
+                </div>
+
+                <div class="flex gap-2">
+                  <button @click="confirmRestore" :disabled="busy"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-display font-semibold transition-all cursor-pointer
+                           bg-cyan-400 text-dark-bg hover:bg-cyan-300
+                           shadow-[0_0_12px_rgba(34,211,238,0.3)] hover:shadow-[0_0_18px_rgba(34,211,238,0.45)]
+                           disabled:opacity-25 disabled:cursor-not-allowed disabled:shadow-none">
+                    {{ busy ? '處理中…' : '確認恢復在學' }}
+                  </button>
+                  <button @click="activeTab = null; targetGroupId = ''"
+                    class="px-4 py-2.5 rounded-lg text-sm text-slate-600 cursor-pointer
+                           border border-slate-200 dark:border-dark-border hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-400 transition-colors dark:text-slate-400">
+                    取消
                   </button>
                 </div>
               </div>
