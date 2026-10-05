@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePermissionsStore } from '@/stores/permissions'
 import NoAccess from '@/components/common/NoAccess.vue'
 import { rocYear, classLetter } from '@/lib/year'
-import { Printer, FileSearch, ClipboardList, FileDown, PenLine, GripVertical, ListOrdered, Shuffle } from 'lucide-vue-next'
+import { Printer, FileSearch, ClipboardList, FileDown, PenLine, GripVertical, ListOrdered, Shuffle, UserCheck } from 'lucide-vue-next'
 import StudentName from '@/components/common/StudentName.vue'
 
 const data = useDataStore()
@@ -21,6 +21,7 @@ const DOCS = [
   { key: 'attendance',  icon: ClipboardList, label: '出席表',      sub: '附件・列印' },
   { key: 'signin-cat',  icon: PenLine,       label: '簽到表・分類', sub: '依類型分組・Word' },
   { key: 'signin-free', icon: ListOrdered,   label: '簽到表・自訂', sub: '自由排序・Word' },
+  { key: 'signin-leader', icon: UserCheck,   label: '簽到表・組長', sub: '僅組長簽名・Word' },
 ]
 
 // ── Group selection ───────────────────────────────────────────────
@@ -87,15 +88,26 @@ const reviewTitle = ref('第三次專題書面審查')     // 審查名稱
 const reviewDatetime = ref('')                   // 日期時間
 const reviewLocation = ref('')                   // 地點
 const reviewAudience = ref('日間部全體三年級學生') // 參加對象（可自訂）
+const leaderAudience = ref('日間部三年級各組組長') // 組長版的參加對象，與完整版分開記
 const classPrefix = ref('日三')                   // 班級前綴（資料只存到甲/乙，前綴由使用者填）
 
 // export-only ordering — 兩個子頁各自一份，不寫回資料庫
+// 組長版沒有自己的順序：選「依類型」或「自訂」就沿用那一頁排好的順序，兩種簽到表一致。
 const SIGNIN_DOCS = {
-  'signin-cat':  { mode: 'category', tag: '依類型', hint: '拖類型標題可移動整個類型，拖組別可在同類型內調整順序' },
-  'signin-free': { mode: 'custom',   tag: '自訂',   hint: '拖拉調整任意順序，僅套用於本次輸出' },
+  'signin-cat':    { mode: 'category', tag: '依類型', hint: '拖類型標題可移動整個類型，拖組別可在同類型內調整順序' },
+  'signin-free':   { mode: 'custom',   tag: '自訂',   hint: '拖拉調整任意順序，僅套用於本次輸出' },
+  'signin-leader': { mode: null,       tag: '組長',   leaderOnly: true },
 }
 const signinDoc = computed(() => SIGNIN_DOCS[activeDoc.value] ?? null)
-const signinTab = computed(() => signinDoc.value?.mode ?? 'category')
+const leaderMode = ref('category')
+const signinTab = computed(() => signinDoc.value?.mode ?? leaderMode.value)
+const signinHint = computed(() =>
+  Object.values(SIGNIN_DOCS).find((d) => d.mode === signinTab.value)?.hint ?? ''
+)
+const audience = computed({
+  get: () => (signinDoc.value?.leaderOnly ? leaderAudience : reviewAudience).value,
+  set: (v) => { (signinDoc.value?.leaderOnly ? leaderAudience : reviewAudience).value = v },
+})
 const categoryOrder = ref([])
 const customOrder = ref([])
 const activeOrder = computed(() =>
@@ -212,7 +224,7 @@ function cohortLabel(year) {
   return n >= 1 ? `第${cjkNum(n)}屆（${roc}級）` : `（${roc}級）`
 }
 const subtitle = computed(() =>
-  `${cohortLabel(sheetYear.value)} ${reviewTitle.value || ''} 專題組別簽到表`.trim()
+  `${cohortLabel(sheetYear.value)} ${reviewTitle.value || ''} 專題${signinDoc.value?.leaderOnly ? '組長' : '組別'}簽到表`.trim()
 )
 
 // leader first, others by student_id
@@ -236,13 +248,33 @@ async function downloadSignin(list, tag) {
   if (!sheetYear.value || !list.length || downloading.value) return
   downloading.value = tag
   try {
-    const { downloadReviewSigninDocx } = await import('@/lib/attendanceYearDoc')
-    await downloadReviewSigninDocx({
+    const lib = await import('@/lib/attendanceYearDoc')
+    const meta = {
       subtitle: subtitle.value,
       datetime: reviewDatetime.value,
       location: reviewLocation.value,
-      audience: reviewAudience.value,
+      audience: audience.value,
       fileBase: `${reviewTitle.value || '簽到表'}_${rocYear(sheetYear.value)}級_${tag}`,
+    }
+    if (signinDoc.value.leaderOnly) {
+      // 順序沿用清單編號（同完整版），空組別不出列
+      const groups = list
+        .map((g, i) => ({ g, order: i + 1, members: groupMembers(g) }))
+        .filter((x) => x.members.length)
+        .map(({ g, order, members }) => {
+          const l = members.find((s) => s.id === g.leader_id)
+          return {
+            order,
+            category: g.category || '',
+            name: g.name,
+            leader: l ? { class_label: classCell(l.class_), student_id: l.student_id, name: l.name } : null,
+          }
+        })
+      await lib.downloadLeaderSigninDocx({ ...meta, groups })
+      return
+    }
+    await lib.downloadReviewSigninDocx({
+      ...meta,
       groups: list.map((g, i) => ({
         order: i + 1,
         category: g.category || '',
@@ -341,12 +373,21 @@ async function downloadSignin(list, tag) {
               </div>
               <div>
                 <label class="label">參加對象</label>
-                <input v-model="reviewAudience" class="input" placeholder="日間部全體三年級學生" />
+                <input v-model="audience" class="input"
+                       :placeholder="signinDoc.leaderOnly ? '日間部三年級各組組長' : '日間部全體三年級學生'" />
               </div>
               <div>
                 <label class="label">班級前綴</label>
                 <input v-model="classPrefix" class="input" placeholder="日三" />
                 <p class="mt-1 text-[11px] text-slate-600 dark:text-slate-400">會接上學生的班別字，例如「日三」＋「甲」＝ 日三甲</p>
+              </div>
+              <div v-if="signinDoc.leaderOnly">
+                <label class="label">排列順序</label>
+                <select v-model="leaderMode" class="input">
+                  <option value="category">依類型（與「簽到表・分類」同順序）</option>
+                  <option value="custom">自訂（與「簽到表・自訂」同順序）</option>
+                </select>
+                <p class="mt-1 text-[11px] text-slate-600 dark:text-slate-400">一組一列只列組長，約 19 組一頁</p>
               </div>
             </div>
             <p v-if="sheetYear" class="text-center text-sm font-semibold text-slate-700 dark:text-slate-200 pt-1">
@@ -374,7 +415,7 @@ async function downloadSignin(list, tag) {
             <div class="card p-4 space-y-3">
               <div class="space-y-3">
                 <p class="text-xs text-slate-600 dark:text-slate-400 min-w-0 flex-1">
-                  {{ signinDoc.hint }}
+                  {{ signinHint }}
                 </p>
                 <div class="flex items-center gap-2">
                   <button @click="randomize" class="btn-secondary flex items-center gap-1.5">
